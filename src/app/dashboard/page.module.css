@@ -44,11 +44,29 @@
   margin: 0;
 }
 
-.placeholder {
+.navLinks {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.navLink {
+  flex: 1;
   text-align: center;
+  padding: 0.85rem 1rem;
+  background: rgba(124, 106, 247, 0.12);
+  border: 1px solid rgba(124, 106, 247, 0.3);
+  border-radius: 0.625rem;
+  color: #c4b5fd;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.55);
-  margin: 0 0 2rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.navLink:hover {
+  background: rgba(124, 106, 247, 0.2);
+  border-color: rgba(124, 106, 247, 0.5);
 }
 
 .logoutBtn {

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/actions/auth'
 import styles from './page.module.css'
@@ -27,9 +28,14 @@ export default async function DashboardPage() {
           <p className={styles.subtitle}>Logado como {user.email}</p>
         </div>
 
-        <p className={styles.placeholder}>
-          Área interna protegida. Em breve: lista de hábitos e streaks.
-        </p>
+        <div className={styles.navLinks}>
+          <Link href="/areas" className={styles.navLink}>
+            Áreas
+          </Link>
+          <Link href="/habitos" className={styles.navLink}>
+            Hábitos
+          </Link>
+        </div>
 
         <form action={signOut}>
           <button type="submit" className={styles.logoutBtn}>
