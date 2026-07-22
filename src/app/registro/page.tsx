@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import Link from 'next/link'
 import { signUp, type SignUpState } from '@/actions/auth'
 import styles from './page.module.css'
 
@@ -32,9 +33,9 @@ export default function RegistroPage() {
                 <strong>{state.email}</strong>.<br />
                 Verifique sua caixa de entrada (e o spam) para ativar sua conta.
               </p>
-              <a href="/" className={styles.backLink}>
+              <Link href="/" className={styles.backLink}>
                 ← Voltar ao início
-              </a>
+              </Link>
             </>
           )}
         </div>
