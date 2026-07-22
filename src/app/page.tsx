@@ -17,9 +17,14 @@ export default function Home() {
           <p className={styles.tagline}>
             Rastreie hábitos, construa streaks e transforme sua rotina.
           </p>
-          <a href="/registro" className={styles.cta}>
-            Criar conta grátis →
-          </a>
+          <div className={styles.actions}>
+            <a href="/registro" className={styles.cta}>
+              Criar conta grátis →
+            </a>
+            <a href="/login" className={styles.ctaSecondary}>
+              Já tenho conta
+            </a>
+          </div>
         </div>
       </main>
     </div>
