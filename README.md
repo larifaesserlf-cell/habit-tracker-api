@@ -42,3 +42,11 @@ Projeto de estudo com escopo fechado, construído para consolidar fundamentos de
 ## Como rodar localmente
 
 _(a preencher conforme o setup avança)_
+
+## Checklist antes de produção
+
+- [ ] Reativar confirmação de e-mail no Supabase Auth (Authentication >
+      Sign In / Providers > Email > "Confirm email") — foi desativado
+      temporariamente para facilitar testes em desenvolvimento
+- [ ] Configurar um provedor de e-mail de verdade (SMTP customizado), já
+      que o padrão do Supabase tem limite baixo de envios por hora
