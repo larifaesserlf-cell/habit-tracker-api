@@ -15,14 +15,28 @@ export default function RegistroPage() {
         <div className={styles.card}>
           <div className={styles.successIcon}>✓</div>
           <h1 className={styles.title}>Conta criada!</h1>
-          <p className={styles.successMsg}>
-            Enviamos um link de confirmação para{' '}
-            <strong>{state.email}</strong>.<br />
-            Verifique sua caixa de entrada (e o spam) para ativar sua conta.
-          </p>
-          <a href="/" className={styles.backLink}>
-            ← Voltar ao início
-          </a>
+          {state.autoLoggedIn ? (
+            <>
+              <p className={styles.successMsg}>
+                Sua conta <strong>{state.email}</strong> foi criada e você já
+                está conectado.
+              </p>
+              <a href="/dashboard" className={styles.backLink}>
+                Ir para o painel →
+              </a>
+            </>
+          ) : (
+            <>
+              <p className={styles.successMsg}>
+                Enviamos um link de confirmação para{' '}
+                <strong>{state.email}</strong>.<br />
+                Verifique sua caixa de entrada (e o spam) para ativar sua conta.
+              </p>
+              <a href="/" className={styles.backLink}>
+                ← Voltar ao início
+              </a>
+            </>
+          )}
         </div>
       </div>
     )

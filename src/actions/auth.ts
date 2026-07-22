@@ -1,6 +1,7 @@
 'use server'
 
-import { supabase } from '@/lib/supabase/client'
+import { redirect } from 'next/navigation'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export type SignUpState =
   | {
@@ -18,6 +19,7 @@ export type SignUpState =
   | {
       status: 'success'
       email: string
+      autoLoggedIn: boolean
     }
 
 /**
@@ -57,7 +59,8 @@ export async function signUp(
   }
 
   // ── Chamada ao Supabase Auth ─────────────────────────────────────
-  const { error } = await supabase.auth.signUp({
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -96,5 +99,15 @@ export async function signUp(
     }
   }
 
-  return { status: 'success', email }
+  return { status: 'success', email, autoLoggedIn: data.session !== null }
+}
+
+/**
+ * Server Action de logout. Encerra a sessão no Supabase Auth e redireciona
+ * para /login.
+ */
+export async function signOut() {
+  const supabase = await createSupabaseServerClient()
+  await supabase.auth.signOut()
+  redirect('/login')
 }
