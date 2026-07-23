@@ -41,16 +41,15 @@ export default async function HabitosPage({
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
-    supabase
-      .from('areas')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('arquivada', false)
-      .order('ordem', { ascending: true }),
+    // Busca todas as áreas (não só as ativas): um hábito pode estar vinculado
+    // a uma área já arquivada, e precisamos do nome dela pra exibir o rótulo
+    // "(arquivada)" em vez de simplesmente não mostrar nada.
+    supabase.from('areas').select('*').eq('user_id', user.id).order('ordem', { ascending: true }),
   ])
 
   const habits = (habitsData ?? []) as Habit[]
-  const areas = (areasData ?? []) as Area[]
+  const todasAreas = (areasData ?? []) as Area[]
+  const areasAtivas = todasAreas.filter((a) => !a.arquivada)
 
   const habitIds = habits.map((h) => h.id)
   const { data: logsData } =
@@ -68,9 +67,18 @@ export default async function HabitosPage({
     lista.push({ data: log.data, status: log.status })
     logsByHabit.set(log.habit_id, lista)
   }
-  const areaById = new Map(areas.map((a) => [a.id, a]))
+  const areaById = new Map(todasAreas.map((a) => [a.id, a]))
 
   const editingHabit = edit ? habits.find((h) => h.id === edit) ?? null : null
+
+  // Se o hábito em edição está vinculado a uma área arquivada, inclui essa
+  // área nas opções do formulário (só ela, não as outras arquivadas) —
+  // senão o <select> cairia em "Sem área" e salvar sem querer desvincularia.
+  const areaAtualArquivada =
+    editingHabit?.area_id && !areasAtivas.some((a) => a.id === editingHabit.area_id)
+      ? todasAreas.find((a) => a.id === editingHabit.area_id) ?? null
+      : null
+  const areasParaForm = areaAtualArquivada ? [...areasAtivas, areaAtualArquivada] : areasAtivas
 
   return (
     <div className={styles.page}>
@@ -83,7 +91,7 @@ export default async function HabitosPage({
 
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>{editingHabit ? 'Editar hábito' : 'Novo hábito'}</h2>
-        <HabitForm key={editingHabit?.id ?? 'new'} habit={editingHabit} areas={areas} />
+        <HabitForm key={editingHabit?.id ?? 'new'} habit={editingHabit} areas={areasParaForm} />
       </section>
 
       <section className={styles.section}>
@@ -101,7 +109,15 @@ export default async function HabitosPage({
                     <div className={styles.itemNome}>{habit.nome}</div>
                     <div className={styles.itemMeta}>
                       {habit.frequencia === 'diario' ? 'Diário' : 'Semanal'}
-                      {area ? ` · ${area.icone} ${area.nome}` : ''}
+                      {area && (
+                        <>
+                          {' · '}
+                          {area.icone} {area.nome}
+                          {area.arquivada && (
+                            <span className={styles.areaArquivadaLabel}> (arquivada)</span>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

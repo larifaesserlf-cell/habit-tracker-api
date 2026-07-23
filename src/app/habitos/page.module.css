@@ -103,6 +103,11 @@
   margin-top: 0.15rem;
 }
 
+.areaArquivadaLabel {
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
 .itemActions {
   display: flex;
   align-items: center;

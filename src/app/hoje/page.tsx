@@ -56,7 +56,10 @@ export default async function HojePage() {
     { data: metasData },
     { data: reflexoesData },
   ] = await Promise.all([
-    supabase.from('areas').select('*').eq('user_id', user.id).eq('arquivada', false),
+    // Todas as áreas (não só ativas): hábitos/metas/rotina podem estar
+    // vinculados a uma área já arquivada, e ainda queremos mostrar o nome
+    // dela (com indicação de que está arquivada) em vez de nada.
+    supabase.from('areas').select('*').eq('user_id', user.id),
     supabase.from('rotina_diaria').select('*').eq('user_id', user.id),
     supabase.from('habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('metas').select('*').eq('status', 'ativa'),
@@ -154,7 +157,15 @@ export default async function HojePage() {
                       <div className={styles.itemNome}>{h.nome}</div>
                       <div className={styles.itemMeta}>
                         {h.frequencia === 'diario' ? 'Diário' : 'Semanal'}
-                        {area ? ` · ${area.icone} ${area.nome}` : ''}
+                        {area && (
+                          <>
+                            {' · '}
+                            {area.icone} {area.nome}
+                            {area.arquivada && (
+                              <span className={styles.areaArquivadaLabel}> (arquivada)</span>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

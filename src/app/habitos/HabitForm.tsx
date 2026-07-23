@@ -55,6 +55,7 @@ export function HabitForm({ habit, areas }: { habit: Habit | null; areas: Area[]
             {areas.map((area) => (
               <option key={area.id} value={area.id}>
                 {area.icone} {area.nome}
+                {area.arquivada ? ' (arquivada)' : ''}
               </option>
             ))}
           </select>
