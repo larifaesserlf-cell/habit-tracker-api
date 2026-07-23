@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BlocoForm } from './BlocoForm'
 import { DeleteBlocoButton } from './DeleteBlocoButton'
+import { GradeScrollHint } from './GradeScrollHint'
 import type { Area, RotinaBloco } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
@@ -149,77 +150,79 @@ export default async function RotinaPage({
         {blocos.length === 0 ? (
           <p className={styles.empty}>Nenhum bloco cadastrado ainda. Crie o primeiro acima.</p>
         ) : (
-          <div
-            className={styles.grid}
-            style={{
-              gridTemplateColumns: `3.25rem repeat(7, minmax(6.5rem, 1fr))`,
-              gridTemplateRows: `2rem repeat(${totalSlots}, 1.4rem)`,
-            }}
-          >
-            {/* Cabeçalho dos dias */}
-            {DIAS.map((dia, i) => (
-              <div
-                key={dia}
-                className={styles.dayHeader}
-                style={{ gridColumn: i + 2, gridRow: 1 }}
-              >
-                {dia}
-              </div>
-            ))}
-
-            {/* Rótulos de hora */}
-            {horasLabel.map((hora, i) => (
-              <div
-                key={hora}
-                className={styles.hourLabel}
-                style={{
-                  gridColumn: 1,
-                  gridRow: `${i * 2 + 2} / span 2`,
-                }}
-              >
-                {String(hora).padStart(2, '0')}h
-              </div>
-            ))}
-
-            {/* Linhas de grade horizontais (uma por hora cheia) */}
-            {horasLabel.map((hora, i) => (
-              <div
-                key={`linha-${hora}`}
-                className={styles.hourLine}
-                style={{ gridColumn: '2 / -1', gridRow: i * 2 + 2 }}
-              />
-            ))}
-
-            {/* Blocos */}
-            {blocos.map((bloco) => {
-              const area = bloco.area_id ? areaPorId.get(bloco.area_id) : null
-              const rowStart = Math.floor(slotDe(bloco.hora_inicio)) + 2
-              const rowEnd = Math.ceil(slotDe(bloco.hora_fim)) + 2
-              const { lane, lanes } = layoutSobreposicao.get(bloco.id) ?? { lane: 0, lanes: 1 }
-              const larguraPct = 100 / lanes
-              return (
+          <GradeScrollHint>
+            <div
+              className={styles.grid}
+              style={{
+                gridTemplateColumns: `3.25rem repeat(7, minmax(6.5rem, 1fr))`,
+                gridTemplateRows: `2rem repeat(${totalSlots}, 1.4rem)`,
+              }}
+            >
+              {/* Cabeçalho dos dias */}
+              {DIAS.map((dia, i) => (
                 <div
-                  key={bloco.id}
-                  data-dia-semana={bloco.dia_semana}
-                  data-testid="bloco-rotina"
-                  className={styles.bloco}
+                  key={dia}
+                  className={styles.dayHeader}
+                  style={{ gridColumn: i + 2, gridRow: 1 }}
+                >
+                  {dia}
+                </div>
+              ))}
+
+              {/* Rótulos de hora */}
+              {horasLabel.map((hora, i) => (
+                <div
+                  key={hora}
+                  className={styles.hourLabel}
                   style={{
-                    gridColumn: bloco.dia_semana + 2,
-                    gridRow: `${rowStart} / ${rowEnd}`,
-                    width: `calc(${larguraPct}% - 4px)`,
-                    marginLeft: `calc(${larguraPct * lane}% + 2px)`,
-                    background: area ? `${area.cor}26` : 'rgba(124, 106, 247, 0.15)',
-                    borderColor: area ? area.cor : 'rgba(124, 106, 247, 0.5)',
+                    gridColumn: 1,
+                    gridRow: `${i * 2 + 2} / span 2`,
                   }}
                 >
-                  <div className={styles.blocoAtividade}>{bloco.atividade}</div>
-                  <div className={styles.blocoHora}>
-                    {formatHora(bloco.hora_inicio)}–{formatHora(bloco.hora_fim)}
-                  </div>
+                  {String(hora).padStart(2, '0')}h
                 </div>
-              )
-            })}
-          </div>
+              ))}
+
+              {/* Linhas de grade horizontais (uma por hora cheia) */}
+              {horasLabel.map((hora, i) => (
+                <div
+                  key={`linha-${hora}`}
+                  className={styles.hourLine}
+                  style={{ gridColumn: '2 / -1', gridRow: i * 2 + 2 }}
+                />
+              ))}
+
+              {/* Blocos */}
+              {blocos.map((bloco) => {
+                const area = bloco.area_id ? areaPorId.get(bloco.area_id) : null
+                const rowStart = Math.floor(slotDe(bloco.hora_inicio)) + 2
+                const rowEnd = Math.ceil(slotDe(bloco.hora_fim)) + 2
+                const { lane, lanes } = layoutSobreposicao.get(bloco.id) ?? { lane: 0, lanes: 1 }
+                const larguraPct = 100 / lanes
+                return (
+                  <div
+                    key={bloco.id}
+                    data-dia-semana={bloco.dia_semana}
+                    data-testid="bloco-rotina"
+                    className={styles.bloco}
+                    style={{
+                      gridColumn: bloco.dia_semana + 2,
+                      gridRow: `${rowStart} / ${rowEnd}`,
+                      width: `calc(${larguraPct}% - 4px)`,
+                      marginLeft: `calc(${larguraPct * lane}% + 2px)`,
+                      background: area ? `${area.cor}26` : 'rgba(124, 106, 247, 0.15)',
+                      borderColor: area ? area.cor : 'rgba(124, 106, 247, 0.5)',
+                    }}
+                  >
+                    <div className={styles.blocoAtividade}>{bloco.atividade}</div>
+                    <div className={styles.blocoHora}>
+                      {formatHora(bloco.hora_inicio)}–{formatHora(bloco.hora_fim)}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </GradeScrollHint>
         )}
       </section>
 
