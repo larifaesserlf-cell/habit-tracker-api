@@ -16,20 +16,66 @@ export const metadata: Metadata = {
   title: 'Financeiro',
 }
 
-/** Primeiro e último dia do mês atual (relógio do servidor), em ISO (YYYY-MM-DD). */
-function faixaMesAtual() {
+/** Mês atual (relógio do servidor) em "YYYY-MM". */
+function mesAtualISO(): string {
   const agora = new Date()
-  const inicio = new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), 1))
-  const fim = new Date(Date.UTC(agora.getFullYear(), agora.getMonth() + 1, 0))
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Valida o parâmetro `?mes=`; se ausente/inválido, cai no mês atual. */
+function mesValido(mes: string | undefined): string {
+  return mes && /^\d{4}-\d{2}$/.test(mes) ? mes : mesAtualISO()
+}
+
+/** Primeiro e último dia do mês informado ("YYYY-MM"), em ISO (YYYY-MM-DD). */
+function faixaDoMes(mesISO: string) {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const inicio = new Date(Date.UTC(ano, mes - 1, 1))
+  const fim = new Date(Date.UTC(ano, mes, 0))
   return { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) }
+}
+
+/** Desloca um mês ("YYYY-MM") por `delta` meses (pode ser negativo). */
+function deslocarMes(mesISO: string, delta: number): string {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const totalMeses = mes - 1 + delta
+  const novoAno = ano + Math.floor(totalMeses / 12)
+  const novoMes = (((totalMeses % 12) + 12) % 12) + 1
+  return `${novoAno}-${String(novoMes).padStart(2, '0')}`
+}
+
+/** Nome do mês por extenso em pt-BR, ex: "Agosto de 2026". */
+function nomeMes(mesISO: string): string {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const nome = new Date(Date.UTC(ano, mes - 1, 1)).toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  return nome.charAt(0).toUpperCase() + nome.slice(1)
+}
+
+/** Monta a URL de /financeiro preservando os filtros de tipo/categoria e trocando o mês. */
+function hrefComMes(filtros: { tipo?: string; categoria?: string }, mes: string): string {
+  const params = new URLSearchParams()
+  if (filtros.tipo) params.set('tipo', filtros.tipo)
+  if (filtros.categoria) params.set('categoria', filtros.categoria)
+  params.set('mes', mes)
+  return `/financeiro?${params.toString()}`
 }
 
 export default async function FinanceiroPage({
   searchParams,
 }: {
-  searchParams: Promise<{ editConta?: string; editTransacao?: string; tipo?: string; categoria?: string }>
+  searchParams: Promise<{
+    editConta?: string
+    editTransacao?: string
+    tipo?: string
+    categoria?: string
+    mes?: string
+  }>
 }) {
-  const { editConta, editTransacao, tipo, categoria } = await searchParams
+  const { editConta, editTransacao, tipo, categoria, mes } = await searchParams
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -57,7 +103,8 @@ export default async function FinanceiroPage({
   const contaPorId = new Map(contas.map((c) => [c.id, c]))
   const transacoes = (transacoesData ?? []) as Transacao[]
 
-  const { inicio, fim } = faixaMesAtual()
+  const mesSelecionado = mesValido(mes)
+  const { inicio, fim } = faixaDoMes(mesSelecionado)
   const transacoesDoMes = transacoes.filter((t) => t.data >= inicio && t.data <= fim)
   const receitaDoMes = transacoesDoMes
     .filter((t) => t.tipo === 'receita')
@@ -88,6 +135,11 @@ export default async function FinanceiroPage({
   const editingConta = editConta ? contas.find((c) => c.id === editConta) ?? null : null
   const editingTransacao = editTransacao ? transacoes.find((t) => t.id === editTransacao) ?? null : null
 
+  const filtrosAtuais = { tipo, categoria }
+  const hrefMesAnterior = hrefComMes(filtrosAtuais, deslocarMes(mesSelecionado, -1))
+  const hrefMesSeguinte = hrefComMes(filtrosAtuais, deslocarMes(mesSelecionado, 1))
+  const estaNoMesAtual = mesSelecionado === mesAtualISO()
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -101,7 +153,15 @@ export default async function FinanceiroPage({
       </div>
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>Resumo do mês</h2>
+        <div className={styles.mesNav}>
+          <Link href={hrefMesAnterior} className={styles.mesNavArrow} aria-label="Mês anterior">
+            ←
+          </Link>
+          <h2 className={styles.cardTitle}>Resumo de {nomeMes(mesSelecionado)}</h2>
+          <Link href={hrefMesSeguinte} className={styles.mesNavArrow} aria-label="Próximo mês">
+            →
+          </Link>
+        </div>
         <div className={styles.statsGrid}>
           <div className={styles.statTile}>
             <div className={styles.statTileValue}>{formatMoeda(saldoTotalContas)}</div>
@@ -116,10 +176,15 @@ export default async function FinanceiroPage({
             <div className={styles.statTileLabel}>Despesa do mês</div>
           </div>
         </div>
+        {!estaNoMesAtual && (
+          <Link href="/financeiro" className={styles.voltarMesAtual}>
+            ← Voltar pro mês atual
+          </Link>
+        )}
       </section>
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>Gastos por categoria (mês atual)</h2>
+        <h2 className={styles.cardTitle}>Gastos por categoria ({nomeMes(mesSelecionado)})</h2>
         <GastosPorCategoriaChart dados={gastosPorCategoria} />
       </section>
 

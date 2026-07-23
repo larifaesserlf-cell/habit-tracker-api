@@ -76,6 +76,46 @@
   font-size: 0.9rem;
 }
 
+/* ── Navegador de mês ── */
+.mesNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.mesNav .cardTitle {
+  margin: 0;
+  min-width: 12rem;
+  text-align: center;
+}
+
+.mesNavArrow {
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-size: 1.1rem;
+  padding: 0.15rem 0.6rem;
+  border-radius: 0.4rem;
+}
+
+.mesNavArrow:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.voltarMesAtual {
+  display: inline-block;
+  color: #a78bfa;
+  font-size: 0.8rem;
+  text-decoration: none;
+  margin-top: 1rem;
+}
+
+.voltarMesAtual:hover {
+  color: #c4b5fd;
+}
+
 /* ── Resumo do mês ── */
 .statsGrid {
   display: grid;
