@@ -7,6 +7,7 @@ import { DeleteContaButton } from './DeleteContaButton'
 import { TransacaoForm } from './TransacaoForm'
 import { DeleteTransacaoButton } from './DeleteTransacaoButton'
 import { FiltrosBar } from './FiltrosBar'
+import { GastosPorCategoriaChart } from './GastosPorCategoriaChart'
 import { CONTA_TIPO_LABEL, formatMoeda, formatDataBR } from './constants'
 import type { ContaFinanceira, Transacao } from '@/lib/supabase/types'
 import styles from './page.module.css'
@@ -66,6 +67,16 @@ export default async function FinanceiroPage({
     .reduce((soma, t) => soma + t.valor, 0)
   const saldoTotalContas = contas.reduce((soma, c) => soma + c.saldo_atual, 0)
 
+  // Agrupa as despesas do mês por categoria — não há lista fixa de
+  // categorias no código, o gráfico reflete o que existir nos dados.
+  const valorPorCategoria = new Map<string, number>()
+  for (const t of transacoesDoMes) {
+    if (t.tipo !== 'despesa') continue
+    valorPorCategoria.set(t.categoria, (valorPorCategoria.get(t.categoria) ?? 0) + t.valor)
+  }
+  const gastosPorCategoria = Array.from(valorPorCategoria, ([categoria, valor]) => ({ categoria, valor }))
+    .sort((a, b) => b.valor - a.valor)
+
   const categoriasExistentes = Array.from(new Set(transacoes.map((t) => t.categoria))).sort()
 
   const transacoesFiltradas = transacoes.filter((t) => {
@@ -105,6 +116,11 @@ export default async function FinanceiroPage({
             <div className={styles.statTileLabel}>Despesa do mês</div>
           </div>
         </div>
+      </section>
+
+      <section className={styles.card}>
+        <h2 className={styles.cardTitle}>Gastos por categoria (mês atual)</h2>
+        <GastosPorCategoriaChart dados={gastosPorCategoria} />
       </section>
 
       <section className={styles.card}>
