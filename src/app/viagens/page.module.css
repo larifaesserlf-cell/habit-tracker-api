@@ -1,0 +1,474 @@
+.page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  padding: 2rem 1.5rem 4rem;
+}
+
+.header {
+  max-width: 780px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.backLink {
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  font-size: 0.85rem;
+}
+
+.backLink:hover {
+  color: #c4b5fd;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  flex: 1;
+}
+
+.subLink {
+  color: #a78bfa;
+  font-size: 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.subLink:hover {
+  color: #c4b5fd;
+}
+
+.card {
+  max-width: 780px;
+  margin: 0 auto 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.section {
+  max-width: 780px;
+  margin: 0 auto 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.75rem;
+}
+
+.empty {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ── Resumo (viagem/destino) ── */
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.summaryLabel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.summaryValue {
+  font-size: 0.9rem;
+  color: #ffffff;
+}
+
+.notas {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  margin: 0.75rem 0 0;
+}
+
+/* ── Listagem ── */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.item {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.9rem 1.1rem;
+}
+
+.itemTop {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.itemInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.itemNome {
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.itemMeta {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.itemComentario {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin: 0.5rem 0 0;
+}
+
+.itemActions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.65rem;
+}
+
+.editLink {
+  color: #a78bfa;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.editLink:hover {
+  color: #c4b5fd;
+}
+
+.quickBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.quickBtn:hover {
+  color: #ffffff;
+}
+
+.reorderGroup {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.reorderGroup form {
+  display: inline-flex;
+}
+
+.reorderBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0 0.2rem;
+}
+
+.reorderBtn:hover {
+  color: #ffffff;
+}
+
+.reorderBtn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.deleteBtn:hover {
+  color: #f87171;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.externalLink {
+  color: #93c5fd;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+/* ── Badges: status de viagem ── */
+.statusQueroFazer,
+.statusPlanejando,
+.statusConfirmada,
+.statusConcluida,
+.prioridadeImperdivel,
+.prioridadeSeDerTempo,
+.prioridadeOpcional,
+.pontoQueroIr,
+.pontoVisitado,
+.reservadoBadge,
+.naoReservadoBadge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+}
+
+.statusQueroFazer {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.statusPlanejando {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+}
+
+.statusConfirmada {
+  background: rgba(124, 106, 247, 0.15);
+  border: 1px solid rgba(124, 106, 247, 0.4);
+  color: #c4b5fd;
+}
+
+.statusConcluida {
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  color: #86efac;
+}
+
+.prioridadeImperdivel {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  color: #fca5a5;
+}
+
+.prioridadeSeDerTempo {
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+}
+
+.prioridadeOpcional {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pontoQueroIr {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.pontoVisitado {
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  color: #86efac;
+}
+
+.reservadoBadge {
+  background: rgba(74, 222, 128, 0.12);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  color: #86efac;
+}
+
+.naoReservadoBadge {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.notaBadge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+/* ── Formulário ── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.fieldSmall,
+.fieldGrow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fieldSmall {
+  width: 8rem;
+}
+
+.fieldGrow {
+  flex: 1;
+  min-width: 9rem;
+}
+
+.form label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  padding-bottom: 0.55rem;
+  white-space: nowrap;
+}
+
+.checkboxField input {
+  width: auto;
+}
+
+.form input,
+.form select,
+.textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.textarea {
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.form input:focus,
+.form select:focus,
+.textarea:focus {
+  border-color: #7c6af7;
+  box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.2);
+}
+
+.form select option {
+  background: #24243e;
+  color: #ffffff;
+}
+
+.error {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 0.5rem;
+  color: #fca5a5;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.85rem;
+  margin: 0;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.submitBtn {
+  padding: 0.65rem 1.25rem;
+  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+  border: none;
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelLink {
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.cancelLink:hover {
+  color: #ffffff;
+}

@@ -85,3 +85,69 @@ export type Midia = {
   tags: string[] | null
   created_at: string
 }
+
+export type ViagemStatus = 'quero_fazer' | 'planejando' | 'confirmada' | 'concluida'
+
+export type Viagem = {
+  id: string
+  user_id: string
+  nome: string
+  status: ViagemStatus
+  data_prevista_inicio: string | null
+  data_prevista_fim: string | null
+  orcamento_estimado: number | null
+  orcamento_real: number | null
+  notas: string | null
+  created_at: string
+}
+
+export type Destino = {
+  id: string
+  viagem_id: string
+  nome_cidade: string
+  pais: string | null
+  dias_estimados: number | null
+  ordem: number
+  notas: string | null
+}
+
+export type PontoInteressePrioridade = 'imperdivel' | 'se_der_tempo' | 'opcional'
+export type PontoInteresseStatus = 'quero_ir' | 'visitado'
+
+export type PontoInteresse = {
+  id: string
+  destino_id: string
+  nome: string
+  tipo: string | null
+  prioridade: PontoInteressePrioridade
+  status: PontoInteresseStatus
+  data_visita: string | null
+  nota: number | null
+  custo_estimado: number | null
+  duracao_estimada_horas: number | null
+  link: string | null
+  comentario: string | null
+}
+
+export type Hospedagem = {
+  id: string
+  destino_id: string
+  nome: string | null
+  tipo: string | null
+  regiao_bairro: string | null
+  faixa_preco: string | null
+  link: string | null
+  reservado: boolean
+  notas: string | null
+}
+
+export type Transporte = {
+  id: string
+  viagem_id: string
+  destino_origem_id: string | null
+  destino_destino_id: string | null
+  tipo: string | null
+  custo_estimado: number | null
+  duracao_estimada_horas: number | null
+  notas: string | null
+}
