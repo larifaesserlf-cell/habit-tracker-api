@@ -7,7 +7,8 @@ import { setMetaStatus } from '@/actions/metas'
 import { RotinaHojeCard } from './RotinaHojeCard'
 import { ReflexaoHojeCard } from './ReflexaoHojeCard'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
-import type { Area, Habit, Meta, Reflexao, RotinaBloco } from '@/lib/supabase/types'
+import { VIAGEM_STATUS_LABEL } from '../viagens/constants'
+import type { Area, Habit, Meta, Reflexao, RotinaBloco, Viagem } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -39,6 +40,36 @@ function ordenarMetasFoco(metas: Meta[]): Meta[] {
   return [...comData, ...semData].slice(0, 5)
 }
 
+/**
+ * Viagem em foco: entre as não concluídas, prioriza a com
+ * data_prevista_inicio mais próxima; se nenhuma tiver data, a mais
+ * recente criada.
+ */
+function escolherProximaViagem(viagens: Viagem[]): Viagem | null {
+  const naoConcluidas = viagens.filter((v) => v.status !== 'concluida')
+  const comData = naoConcluidas
+    .filter((v) => v.data_prevista_inicio)
+    .sort((a, b) => (a.data_prevista_inicio! < b.data_prevista_inicio! ? -1 : 1))
+  if (comData.length > 0) return comData[0]
+
+  const semData = [...naoConcluidas].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+  return semData[0] ?? null
+}
+
+/** Dias entre hoje e a data prevista (negativo = já começou/passou). */
+function diasAte(data: string): number {
+  const hoje = new Date().toISOString().slice(0, 10)
+  const msPorDia = 24 * 60 * 60 * 1000
+  return Math.round((Date.parse(data) - Date.parse(hoje)) / msPorDia)
+}
+
+function formatContagem(dias: number): string {
+  if (dias > 1) return `faltam ${dias} dias`
+  if (dias === 1) return 'começa amanhã'
+  if (dias === 0) return 'começa hoje!'
+  return `em andamento (começou há ${-dias} dia${dias === -1 ? '' : 's'})`
+}
+
 export default async function HojePage() {
   const supabase = await createSupabaseServerClient()
   const {
@@ -55,6 +86,7 @@ export default async function HojePage() {
     { data: habitsData },
     { data: metasData },
     { data: reflexoesData },
+    { data: viagensData },
   ] = await Promise.all([
     // Todas as áreas (não só ativas): hábitos/metas/rotina podem estar
     // vinculados a uma área já arquivada, e ainda queremos mostrar o nome
@@ -70,6 +102,7 @@ export default async function HojePage() {
       .order('data', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(5),
+    supabase.from('viagens').select('*').eq('user_id', user.id),
   ])
 
   const areas = (areasData ?? []) as Area[]
@@ -78,6 +111,8 @@ export default async function HojePage() {
   const habits = (habitsData ?? []) as Habit[]
   const metas = (metasData ?? []) as Meta[]
   const reflexoesRecentes = (reflexoesData ?? []) as Reflexao[]
+  const viagens = (viagensData ?? []) as Viagem[]
+  const proximaViagem = escolherProximaViagem(viagens)
 
   const habitIds = habits.map((h) => h.id)
   const { data: logsData } =
@@ -219,6 +254,30 @@ export default async function HojePage() {
           </ul>
         )}
       </section>
+
+      {proximaViagem && (
+        <section className={styles.card}>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Próxima viagem</h2>
+            <Link href="/viagens" className={styles.verTudoLink}>
+              Ver todas →
+            </Link>
+          </div>
+          <div className={styles.itemInfo}>
+            <div>
+              <div className={styles.itemNome}>{proximaViagem.nome}</div>
+              <div className={styles.itemMeta}>
+                {VIAGEM_STATUS_LABEL[proximaViagem.status]}
+                {proximaViagem.data_prevista_inicio &&
+                  ` · ${formatContagem(diasAte(proximaViagem.data_prevista_inicio))}`}
+              </div>
+            </div>
+            <Link href={`/viagens/${proximaViagem.id}`} className={styles.verTudoLink}>
+              Abrir viagem →
+            </Link>
+          </div>
+        </section>
+      )}
 
       <ReflexaoHojeCard recentes={reflexoesRecentes} />
     </div>
