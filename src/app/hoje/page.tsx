@@ -3,10 +3,10 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/actions/auth'
-import { toggleCheckIn } from '@/actions/habits'
 import { setMetaStatus } from '@/actions/metas'
 import { RotinaHojeCard } from './RotinaHojeCard'
 import { ReflexaoHojeCard } from './ReflexaoHojeCard'
+import { HabitCheckInButton } from '@/components/HabitCheckInButton'
 import type { Area, Habit, Meta, Reflexao, RotinaBloco } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
@@ -14,13 +14,14 @@ export const metadata: Metadata = {
   title: 'Hoje',
 }
 
-// Mesma convenção já usada em /habitos: a data do check-in usa o relógio do
-// servidor. O dia da semana e a reflexão do dia (abaixo) usam o do
-// navegador via Client Components, por serem mais sensíveis a fuso — mas
-// manter o check-in consistente com /habitos evita comportamento
-// divergente entre as duas telas pro mesmo botão "Marcar feito".
-function todayISO() {
-  return new Date().toISOString().slice(0, 10)
+/**
+ * Janela de 3 dias (pelo relógio do servidor) só pra garantir que o dia
+ * "de hoje" do navegador do usuário — calculado no HabitCheckInButton,
+ * client-side, igual à rotina e à reflexão desta página — esteja incluído
+ * mesmo perto da virada da meia-noite.
+ */
+function janelaRecente() {
+  return new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10)
 }
 
 function formatDataBR(data: string) {
@@ -75,17 +76,22 @@ export default async function HojePage() {
   const metas = (metasData ?? []) as Meta[]
   const reflexoesRecentes = (reflexoesData ?? []) as Reflexao[]
 
-  const hoje = todayISO()
   const habitIds = habits.map((h) => h.id)
   const { data: logsData } =
     habitIds.length > 0
       ? await supabase
           .from('habit_logs')
-          .select('habit_id, status')
-          .eq('data', hoje)
+          .select('habit_id, data, status')
+          .gte('data', janelaRecente())
           .in('habit_id', habitIds)
-      : { data: [] as { habit_id: string; status: boolean }[] }
-  const statusPorHabito = new Map((logsData ?? []).map((l) => [l.habit_id, l.status]))
+      : { data: [] as { habit_id: string; data: string; status: boolean }[] }
+
+  const logsByHabit = new Map<string, { data: string; status: boolean }[]>()
+  for (const log of logsData ?? []) {
+    const lista = logsByHabit.get(log.habit_id) ?? []
+    lista.push({ data: log.data, status: log.status })
+    logsByHabit.set(log.habit_id, lista)
+  }
 
   const metasFoco = ordenarMetasFoco(metas)
 
@@ -140,7 +146,6 @@ export default async function HojePage() {
         ) : (
           <ul className={styles.list}>
             {habits.map((h) => {
-              const done = statusPorHabito.get(h.id) ?? false
               const area = h.area_id ? areaPorId.get(h.area_id) : null
               return (
                 <li key={h.id} className={styles.item}>
@@ -153,11 +158,12 @@ export default async function HojePage() {
                       </div>
                     </div>
                   </div>
-                  <form action={toggleCheckIn.bind(null, h.id, hoje, !done)}>
-                    <button type="submit" className={done ? styles.checkDone : styles.checkPending}>
-                      {done ? '✓ Feito' : 'Marcar feito'}
-                    </button>
-                  </form>
+                  <HabitCheckInButton
+                    habitId={h.id}
+                    logsRecentes={logsByHabit.get(h.id) ?? []}
+                    doneClassName={styles.checkDone}
+                    pendingClassName={styles.checkPending}
+                  />
                 </li>
               )
             })}
