@@ -194,6 +194,11 @@ export default async function FinanceiroPage({
                       {formatMoeda(t.valor)}
                     </span>
                     {t.fixo && <span className={styles.fixoBadge}>Fixo</span>}
+                    {t.total_parcelas > 1 && (
+                      <span className={styles.parcelaBadge}>
+                        {t.parcela_atual}/{t.total_parcelas}
+                      </span>
+                    )}
                   </div>
                   <div className={styles.itemTitulo}>
                     {t.categoria}
@@ -208,7 +213,7 @@ export default async function FinanceiroPage({
                     <Link href={`/financeiro?editTransacao=${t.id}`} className={styles.editLink}>
                       Editar
                     </Link>
-                    <DeleteTransacaoButton id={t.id} categoria={t.categoria} />
+                    <DeleteTransacaoButton transacao={t} />
                   </div>
                 </li>
               )

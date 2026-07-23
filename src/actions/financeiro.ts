@@ -1,8 +1,9 @@
 'use server'
 
+import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { textoOuNull, numeroOuNull } from '@/lib/formHelpers'
+import { textoOuNull, numeroOuNull, intOuNull } from '@/lib/formHelpers'
 import type { ContaTipo, TransacaoTipo, TipoAtivo } from '@/lib/supabase/types'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
@@ -104,9 +105,40 @@ export async function deleteConta(id: string) {
 
 // ── Transações ──────────────────────────────────────────────────────────
 
+const MAX_PARCELAS = 60 // 5 anos — teto defensivo contra erro de digitação
+
+/** Soma `meses` a uma data ISO (YYYY-MM-DD), ajustando pro último dia do mês
+ *  de destino quando o dia original não existe nele (ex: 31/jan + 1 mês
+ *  vira 28 ou 29/fev, não "3/mar" como o overflow padrão de Date faria). */
+function somarMeses(dataISO: string, meses: number): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  const totalMeses = mes - 1 + meses
+  const novoAno = ano + Math.floor(totalMeses / 12)
+  const novoMes = (((totalMeses % 12) + 12) % 12) + 1
+  const ultimoDiaDoMes = new Date(Date.UTC(novoAno, novoMes, 0)).getUTCDate()
+  const novoDia = Math.min(dia, ultimoDiaDoMes)
+  return `${novoAno}-${String(novoMes).padStart(2, '0')}-${String(novoDia).padStart(2, '0')}`
+}
+
+/** Divide um valor total em N parcelas de 2 casas decimais cuja soma bate
+ *  exatamente com o total (a diferença de arredondamento, se houver, fica
+ *  concentrada na última parcela). */
+function dividirValorEmParcelas(valorTotal: number, totalParcelas: number): number[] {
+  const centavosTotal = Math.round(valorTotal * 100)
+  const centavosBase = Math.floor(centavosTotal / totalParcelas)
+  const valores = Array(totalParcelas).fill(centavosBase)
+  const resto = centavosTotal - centavosBase * totalParcelas
+  valores[totalParcelas - 1] += resto
+  return valores.map((centavos) => centavos / 100)
+}
+
 /**
  * Server Action de criação/edição de transação.
  * Se `formData` tiver um campo `id` preenchido, atualiza; senão, cria.
+ * Em criação, se `tipo` for despesa e `total_parcelas` > 1, o valor
+ * informado é tratado como o valor TOTAL da compra: gera uma linha por
+ * parcela (mesma categoria/conta/compra_id, uma por mês a partir da data
+ * informada), cada uma com sua fração do valor.
  */
 export async function saveTransacao(
   _prevState: TransacaoFormState,
@@ -135,6 +167,14 @@ export async function saveTransacao(
     return { status: 'error', message: 'Informe a data.' }
   }
 
+  // Parcelamento só se aplica a despesas novas (não em edição — editar
+  // mexe só na própria linha, sem reabrir as demais parcelas da compra).
+  const totalParcelasRaw = id || tipo !== 'despesa' ? 1 : intOuNull(formData, 'total_parcelas') ?? 1
+  const totalParcelas = Math.max(1, totalParcelasRaw)
+  if (totalParcelas > MAX_PARCELAS) {
+    return { status: 'error', message: `Número de parcelas muito alto (máximo ${MAX_PARCELAS}).` }
+  }
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -146,23 +186,54 @@ export async function saveTransacao(
     return { status: 'error', message: 'Conta inválida.' }
   }
 
-  const payload = {
+  const subcategoria = textoOuNull(formData, 'subcategoria')
+  const descricaoBase = textoOuNull(formData, 'descricao')
+  const fixo = formData.get('fixo') === 'on'
+
+  if (id) {
+    // Edição: só atualiza a própria linha, sem tocar em parcelamento.
+    const payload = { conta_id: contaId, tipo, categoria, subcategoria, valor, data, descricao: descricaoBase, fixo }
+    const { error } = await supabase.from('transacoes').update(payload).eq('id', id).eq('user_id', user.id)
+    if (error) {
+      return { status: 'error', message: `Erro ao salvar transação: ${error.message}` }
+    }
+    revalidatePath('/financeiro')
+    return { status: 'success' }
+  }
+
+  if (totalParcelas <= 1) {
+    const payload = { conta_id: contaId, tipo, categoria, subcategoria, valor, data, descricao: descricaoBase, fixo }
+    const { error } = await supabase.from('transacoes').insert({ ...payload, user_id: user.id })
+    if (error) {
+      return { status: 'error', message: `Erro ao salvar transação: ${error.message}` }
+    }
+    revalidatePath('/financeiro')
+    return { status: 'success' }
+  }
+
+  // Parcelado: gera uma linha por parcela, todas com o mesmo compra_id.
+  const compraId = randomUUID()
+  const valoresPorParcela = dividirValorEmParcelas(valor, totalParcelas)
+  const linhas = valoresPorParcela.map((valorParcela, i) => ({
     conta_id: contaId,
     tipo,
     categoria,
-    subcategoria: textoOuNull(formData, 'subcategoria'),
-    valor,
-    data,
-    descricao: textoOuNull(formData, 'descricao'),
-    fixo: formData.get('fixo') === 'on',
-  }
+    subcategoria,
+    valor: valorParcela,
+    data: somarMeses(data, i),
+    descricao: descricaoBase
+      ? `${descricaoBase} (${i + 1}/${totalParcelas})`
+      : `(${i + 1}/${totalParcelas})`,
+    fixo,
+    total_parcelas: totalParcelas,
+    parcela_atual: i + 1,
+    compra_id: compraId,
+    user_id: user.id,
+  }))
 
-  const { error } = id
-    ? await supabase.from('transacoes').update(payload).eq('id', id).eq('user_id', user.id)
-    : await supabase.from('transacoes').insert({ ...payload, user_id: user.id })
-
+  const { error } = await supabase.from('transacoes').insert(linhas)
   if (error) {
-    return { status: 'error', message: `Erro ao salvar transação: ${error.message}` }
+    return { status: 'error', message: `Erro ao salvar transação parcelada: ${error.message}` }
   }
 
   revalidatePath('/financeiro')
@@ -170,7 +241,7 @@ export async function saveTransacao(
 }
 
 /**
- * Exclui a transação definitivamente.
+ * Exclui apenas esta transação.
  */
 export async function deleteTransacao(id: string) {
   const supabase = await createSupabaseServerClient()
@@ -180,6 +251,26 @@ export async function deleteTransacao(id: string) {
   if (!user) return
 
   await supabase.from('transacoes').delete().eq('id', id).eq('user_id', user.id)
+  revalidatePath('/financeiro')
+}
+
+/**
+ * Exclui esta parcela e as futuras da mesma compra (parcela_atual maior ou
+ * igual à informada) — as parcelas já passadas não são afetadas.
+ */
+export async function deleteTransacoesFuturas(compraId: string, apartirDeParcela: number) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase
+    .from('transacoes')
+    .delete()
+    .eq('user_id', user.id)
+    .eq('compra_id', compraId)
+    .gte('parcela_atual', apartirDeParcela)
   revalidatePath('/financeiro')
 }
 

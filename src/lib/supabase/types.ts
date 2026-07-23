@@ -176,6 +176,9 @@ export type Transacao = {
   data: string
   descricao: string | null
   fixo: boolean
+  total_parcelas: number
+  parcela_atual: number
+  compra_id: string
   created_at: string
 }
 

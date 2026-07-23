@@ -1,10 +1,10 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveTransacao, type TransacaoFormState } from '@/actions/financeiro'
-import type { ContaFinanceira, Transacao } from '@/lib/supabase/types'
+import type { ContaFinanceira, Transacao, TransacaoTipo } from '@/lib/supabase/types'
 import { TRANSACAO_TIPOS, TRANSACAO_TIPO_LABEL } from './constants'
 import styles from './page.module.css'
 
@@ -26,7 +26,9 @@ export function TransacaoForm({
   categoriasExistentes: string[]
 }) {
   const [state, formAction, pending] = useActionState(saveTransacao, initialState)
+  const [tipoSelecionado, setTipoSelecionado] = useState<TransacaoTipo>(transacao?.tipo ?? 'despesa')
   const router = useRouter()
+  const ehParcelaExistente = Boolean(transacao && transacao.total_parcelas > 1)
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -63,7 +65,12 @@ export function TransacaoForm({
         </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="transacao_tipo">Tipo</label>
-          <select id="transacao_tipo" name="tipo" defaultValue={transacao?.tipo ?? 'despesa'}>
+          <select
+            id="transacao_tipo"
+            name="tipo"
+            value={tipoSelecionado}
+            onChange={(e) => setTipoSelecionado(e.target.value as TransacaoTipo)}
+          >
             {TRANSACAO_TIPOS.map((t) => (
               <option key={t} value={t}>
                 {TRANSACAO_TIPO_LABEL[t]}
@@ -72,7 +79,9 @@ export function TransacaoForm({
           </select>
         </div>
         <div className={styles.fieldSmall}>
-          <label htmlFor="transacao_valor">Valor</label>
+          <label htmlFor="transacao_valor">
+            {!transacao && tipoSelecionado === 'despesa' ? 'Valor (total da compra)' : 'Valor'}
+          </label>
           <input
             id="transacao_valor"
             name="valor"
@@ -85,6 +94,34 @@ export function TransacaoForm({
           />
         </div>
       </div>
+
+      {!transacao && tipoSelecionado === 'despesa' && (
+        <div className={styles.formRow}>
+          <div className={styles.fieldSmall}>
+            <label htmlFor="transacao_parcelas">Parcelado em quantas vezes?</label>
+            <input
+              id="transacao_parcelas"
+              name="total_parcelas"
+              type="number"
+              min="1"
+              max="60"
+              defaultValue={1}
+              placeholder="1 (à vista)"
+            />
+          </div>
+          <p className={styles.parcelasAjuda}>
+            Se maior que 1, o valor acima é dividido entre as parcelas e uma transação é criada
+            automaticamente pra cada mês, a partir da data informada.
+          </p>
+        </div>
+      )}
+
+      {ehParcelaExistente && transacao && (
+        <p className={styles.parcelasAjuda}>
+          Parcela {transacao.parcela_atual} de {transacao.total_parcelas} desta compra. Editar aqui altera
+          só esta parcela.
+        </p>
+      )}
 
       <div className={styles.formRow}>
         <div className={styles.fieldGrow}>
