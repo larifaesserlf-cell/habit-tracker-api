@@ -25,3 +25,16 @@ export type HabitLog = {
   data: string
   status: boolean
 }
+
+export type MetaTipo = 'curto' | 'medio' | 'longo'
+export type MetaStatus = 'ativa' | 'concluida' | 'abandonada'
+
+export type Meta = {
+  id: string
+  area_id: string
+  titulo: string
+  tipo: MetaTipo
+  status: MetaStatus
+  data_alvo: string | null
+  created_at: string
+}
