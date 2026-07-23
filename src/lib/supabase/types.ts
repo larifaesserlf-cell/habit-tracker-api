@@ -51,3 +51,12 @@ export type RotinaBloco = {
   atividade: string
   area_id: string | null
 }
+
+export type Reflexao = {
+  id: string
+  user_id: string
+  data: string
+  texto: string
+  humor_opcional: number | null
+  created_at: string
+}

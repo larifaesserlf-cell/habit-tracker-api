@@ -41,6 +41,9 @@ export default async function DashboardPage() {
           <Link href="/rotina" className={styles.navLink}>
             Rotina
           </Link>
+          <Link href="/reflexoes" className={styles.navLink}>
+            Reflexões
+          </Link>
         </div>
 
         <form action={signOut}>
