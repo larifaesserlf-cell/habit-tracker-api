@@ -369,3 +369,17 @@
 .cancelLink:hover {
   color: #ffffff;
 }
+
+.toggleMoreBtn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #a78bfa;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.toggleMoreBtn:hover {
+  color: #c4b5fd;
+}

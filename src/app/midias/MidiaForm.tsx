@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveMidia, type MidiaFormState } from '@/actions/midias'
@@ -10,8 +10,29 @@ import styles from './page.module.css'
 
 const initialState: MidiaFormState = { status: 'idle' }
 
+/** Se algum campo "avançado" já tem valor, começa expandido — senão editar
+ *  esconderia dado já preenchido atrás do "Mostrar mais campos". */
+function temCampoAvancadoPreenchido(midia: Midia | null): boolean {
+  if (!midia) return false
+  return Boolean(
+    midia.autor_diretor ||
+      midia.genero ||
+      midia.ano_lancamento !== null ||
+      midia.data_inicio ||
+      midia.data_conclusao ||
+      midia.temporada_atual !== null ||
+      midia.progresso ||
+      midia.plataforma ||
+      midia.recomendaria !== null ||
+      midia.releitura_rewatch ||
+      (midia.tags && midia.tags.length > 0) ||
+      midia.comentario
+  )
+}
+
 export function MidiaForm({ midia }: { midia: Midia | null }) {
   const [state, formAction, pending] = useActionState(saveMidia, initialState)
+  const [showMore, setShowMore] = useState(() => temCampoAvancadoPreenchido(midia))
   const router = useRouter()
 
   useEffect(() => {
@@ -65,48 +86,6 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
             ))}
           </select>
         </div>
-      </div>
-
-      <div className={styles.formRow}>
-        <div className={styles.fieldGrow}>
-          <label htmlFor="autor_diretor">Autor/Diretor</label>
-          <input
-            id="autor_diretor"
-            name="autor_diretor"
-            defaultValue={midia?.autor_diretor ?? ''}
-            placeholder="Opcional"
-          />
-        </div>
-        <div className={styles.fieldGrow}>
-          <label htmlFor="genero">Gênero</label>
-          <input id="genero" name="genero" defaultValue={midia?.genero ?? ''} placeholder="Opcional" />
-        </div>
-        <div className={styles.fieldSmall}>
-          <label htmlFor="ano_lancamento">Ano</label>
-          <input
-            id="ano_lancamento"
-            name="ano_lancamento"
-            type="number"
-            defaultValue={midia?.ano_lancamento ?? ''}
-            placeholder="Opcional"
-          />
-        </div>
-      </div>
-
-      <div className={styles.formRow}>
-        <div className={styles.fieldSmall}>
-          <label htmlFor="data_inicio">Início</label>
-          <input id="data_inicio" name="data_inicio" type="date" defaultValue={midia?.data_inicio ?? ''} />
-        </div>
-        <div className={styles.fieldSmall}>
-          <label htmlFor="data_conclusao">Conclusão</label>
-          <input
-            id="data_conclusao"
-            name="data_conclusao"
-            type="date"
-            defaultValue={midia?.data_conclusao ?? ''}
-          />
-        </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="nota">Nota (0-10)</label>
           <input
@@ -122,77 +101,141 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
         </div>
       </div>
 
-      <div className={styles.formRow}>
-        <div className={styles.fieldSmall}>
-          <label htmlFor="temporada_atual">Temporada</label>
-          <input
-            id="temporada_atual"
-            name="temporada_atual"
-            type="number"
-            min="1"
-            defaultValue={midia?.temporada_atual ?? ''}
-            placeholder="Se série"
-          />
-        </div>
-        <div className={styles.fieldGrow}>
-          <label htmlFor="progresso">Progresso</label>
-          <input
-            id="progresso"
-            name="progresso"
-            defaultValue={midia?.progresso ?? ''}
-            placeholder='Ex: "cap. 12" ou "S02E05"'
-          />
-        </div>
-        <div className={styles.fieldGrow}>
-          <label htmlFor="plataforma">Plataforma</label>
-          <input
-            id="plataforma"
-            name="plataforma"
-            defaultValue={midia?.plataforma ?? ''}
-            placeholder="Netflix, papel, Kindle…"
-          />
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={() => setShowMore((v) => !v)}
+        className={styles.toggleMoreBtn}
+      >
+        {showMore ? '▴ Ocultar mais campos' : '▾ Mostrar mais campos'}
+      </button>
 
-      <div className={styles.formRow}>
-        <div className={styles.fieldSmall}>
-          <label htmlFor="recomendaria">Recomendaria?</label>
-          <select id="recomendaria" name="recomendaria" defaultValue={recomendariaDefault}>
-            <option value="">Não informado</option>
-            <option value="sim">Sim</option>
-            <option value="nao">Não</option>
-          </select>
-        </div>
-        <label className={styles.checkboxField}>
-          <input
-            type="checkbox"
-            name="releitura_rewatch"
-            defaultChecked={midia?.releitura_rewatch ?? false}
-          />
-          Releitura / rewatch
-        </label>
-        <div className={styles.fieldGrow}>
-          <label htmlFor="tags">Tags</label>
-          <input
-            id="tags"
-            name="tags"
-            defaultValue={midia?.tags?.join(', ') ?? ''}
-            placeholder="separadas por vírgula"
-          />
-        </div>
-      </div>
+      {showMore && (
+        <>
+          <div className={styles.formRow}>
+            <div className={styles.fieldGrow}>
+              <label htmlFor="autor_diretor">Autor/Diretor</label>
+              <input
+                id="autor_diretor"
+                name="autor_diretor"
+                defaultValue={midia?.autor_diretor ?? ''}
+                placeholder="Opcional"
+              />
+            </div>
+            <div className={styles.fieldGrow}>
+              <label htmlFor="genero">Gênero</label>
+              <input
+                id="genero"
+                name="genero"
+                defaultValue={midia?.genero ?? ''}
+                placeholder="Opcional"
+              />
+            </div>
+            <div className={styles.fieldSmall}>
+              <label htmlFor="ano_lancamento">Ano</label>
+              <input
+                id="ano_lancamento"
+                name="ano_lancamento"
+                type="number"
+                defaultValue={midia?.ano_lancamento ?? ''}
+                placeholder="Opcional"
+              />
+            </div>
+          </div>
 
-      <div className={styles.fieldGrow}>
-        <label htmlFor="comentario">Comentário</label>
-        <textarea
-          id="comentario"
-          name="comentario"
-          defaultValue={midia?.comentario ?? ''}
-          rows={3}
-          placeholder="Opcional"
-          className={styles.textarea}
-        />
-      </div>
+          <div className={styles.formRow}>
+            <div className={styles.fieldSmall}>
+              <label htmlFor="data_inicio">Início</label>
+              <input
+                id="data_inicio"
+                name="data_inicio"
+                type="date"
+                defaultValue={midia?.data_inicio ?? ''}
+              />
+            </div>
+            <div className={styles.fieldSmall}>
+              <label htmlFor="data_conclusao">Conclusão</label>
+              <input
+                id="data_conclusao"
+                name="data_conclusao"
+                type="date"
+                defaultValue={midia?.data_conclusao ?? ''}
+              />
+            </div>
+            <div className={styles.fieldSmall}>
+              <label htmlFor="temporada_atual">Temporada</label>
+              <input
+                id="temporada_atual"
+                name="temporada_atual"
+                type="number"
+                min="1"
+                defaultValue={midia?.temporada_atual ?? ''}
+                placeholder="Se série"
+              />
+            </div>
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.fieldGrow}>
+              <label htmlFor="progresso">Progresso</label>
+              <input
+                id="progresso"
+                name="progresso"
+                defaultValue={midia?.progresso ?? ''}
+                placeholder='Ex: "cap. 12" ou "S02E05"'
+              />
+            </div>
+            <div className={styles.fieldGrow}>
+              <label htmlFor="plataforma">Plataforma</label>
+              <input
+                id="plataforma"
+                name="plataforma"
+                defaultValue={midia?.plataforma ?? ''}
+                placeholder="Netflix, papel, Kindle…"
+              />
+            </div>
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.fieldSmall}>
+              <label htmlFor="recomendaria">Recomendaria?</label>
+              <select id="recomendaria" name="recomendaria" defaultValue={recomendariaDefault}>
+                <option value="">Não informado</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </div>
+            <label className={styles.checkboxField}>
+              <input
+                type="checkbox"
+                name="releitura_rewatch"
+                defaultChecked={midia?.releitura_rewatch ?? false}
+              />
+              Releitura / rewatch
+            </label>
+            <div className={styles.fieldGrow}>
+              <label htmlFor="tags">Tags</label>
+              <input
+                id="tags"
+                name="tags"
+                defaultValue={midia?.tags?.join(', ') ?? ''}
+                placeholder="separadas por vírgula"
+              />
+            </div>
+          </div>
+
+          <div className={styles.fieldGrow}>
+            <label htmlFor="comentario">Comentário</label>
+            <textarea
+              id="comentario"
+              name="comentario"
+              defaultValue={midia?.comentario ?? ''}
+              rows={3}
+              placeholder="Opcional"
+              className={styles.textarea}
+            />
+          </div>
+        </>
+      )}
 
       <div className={styles.formActions}>
         <button type="submit" disabled={pending} className={styles.submitBtn}>
