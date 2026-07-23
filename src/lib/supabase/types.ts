@@ -151,3 +151,59 @@ export type Transporte = {
   duracao_estimada_horas: number | null
   notas: string | null
 }
+
+export type ContaTipo = 'corrente' | 'poupanca' | 'carteira' | 'corretora'
+
+export type ContaFinanceira = {
+  id: string
+  user_id: string
+  nome: string
+  tipo: ContaTipo
+  saldo_atual: number
+  created_at: string
+}
+
+export type TransacaoTipo = 'receita' | 'despesa'
+
+export type Transacao = {
+  id: string
+  user_id: string
+  conta_id: string
+  tipo: TransacaoTipo
+  categoria: string
+  subcategoria: string | null
+  valor: number
+  data: string
+  descricao: string | null
+  fixo: boolean
+  created_at: string
+}
+
+export type TipoAtivo =
+  | 'tesouro_ipca'
+  | 'tesouro_selic'
+  | 'etf'
+  | 'acao'
+  | 'renda_fixa_banco'
+  | 'reserva_emergencia'
+  | 'outro'
+
+export type Investimento = {
+  id: string
+  user_id: string
+  tipo_ativo: TipoAtivo
+  nome_ativo: string
+  valor_aportado: number
+  data_aporte: string
+  instituicao: string | null
+  notas: string | null
+  created_at: string
+}
+
+export type OrcamentoMensal = {
+  id: string
+  user_id: string
+  categoria: string
+  mes_referencia: string
+  valor_limite: number
+}

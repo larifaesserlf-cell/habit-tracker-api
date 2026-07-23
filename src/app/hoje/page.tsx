@@ -162,6 +162,9 @@ export default async function HojePage() {
           <Link href="/viagens" className={styles.navLink}>
             Viagens
           </Link>
+          <Link href="/financeiro" className={styles.navLink}>
+            Financeiro
+          </Link>
         </nav>
         <form action={signOut}>
           <button type="submit" className={styles.logoutBtn}>
