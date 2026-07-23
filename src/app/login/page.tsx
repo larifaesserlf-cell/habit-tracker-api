@@ -66,7 +66,7 @@ export default function LoginPage() {
       setState({ status: 'success' })
       // Redireciona após login bem-sucedido (respeita ?redirectTo= definido pelo proxy)
       const redirectTo = new URLSearchParams(window.location.search).get('redirectTo')
-      window.location.href = redirectTo || '/dashboard'
+      window.location.href = redirectTo || '/hoje'
     })
   }
 

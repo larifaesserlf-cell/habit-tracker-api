@@ -40,7 +40,7 @@ export default async function AreasPage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/dashboard" className={styles.backLink}>
+        <Link href="/hoje" className={styles.backLink}>
           ← Painel
         </Link>
         <h1 className={styles.title}>Áreas</h1>

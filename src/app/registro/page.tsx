@@ -22,9 +22,9 @@ export default function RegistroPage() {
                 Sua conta <strong>{state.email}</strong> foi criada e você já
                 está conectado.
               </p>
-              <a href="/dashboard" className={styles.backLink}>
+              <Link href="/hoje" className={styles.backLink}>
                 Ir para o painel →
-              </a>
+              </Link>
             </>
           ) : (
             <>

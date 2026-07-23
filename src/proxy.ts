@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && AUTH_ROUTES.includes(pathname)) {
     const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
+    url.pathname = '/hoje'
     return NextResponse.redirect(url)
   }
 
