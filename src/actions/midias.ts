@@ -25,6 +25,16 @@ function intOuNull(formData: FormData, campo: string): number | null {
 }
 
 /**
+ * Normaliza o gênero pra evitar duplicidade por diferença de maiúsculas/
+ * minúsculas (ex: "ficção científica" e "Ficção Científica" ambos viram
+ * "Ficção científica"). Não migra registros já salvos com o valor antigo.
+ */
+function normalizarGenero(genero: string): string {
+  const limpo = genero.trim().toLowerCase()
+  return limpo.charAt(0).toUpperCase() + limpo.slice(1)
+}
+
+/**
  * Server Action de criação/edição de item de mídia.
  * Se `formData` tiver um campo `id` preenchido, atualiza; senão, cria.
  * Únicos campos obrigatórios de verdade: título e tipo — dá pra só
@@ -75,12 +85,14 @@ export async function saveMidia(
     return { status: 'error', message: 'Sessão expirada. Faça login novamente.' }
   }
 
+  const generoBruto = textoOuNull(formData, 'genero')
+
   const payload = {
     titulo,
     tipo,
     status: midiaStatus,
     autor_diretor: textoOuNull(formData, 'autor_diretor'),
-    genero: textoOuNull(formData, 'genero'),
+    genero: generoBruto ? normalizarGenero(generoBruto) : null,
     ano_lancamento: intOuNull(formData, 'ano_lancamento'),
     data_inicio: textoOuNull(formData, 'data_inicio'),
     data_conclusao: textoOuNull(formData, 'data_conclusao'),
