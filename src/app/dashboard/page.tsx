@@ -44,6 +44,9 @@ export default async function DashboardPage() {
           <Link href="/reflexoes" className={styles.navLink}>
             Reflexões
           </Link>
+          <Link href="/midias" className={styles.navLink}>
+            Mídias
+          </Link>
         </div>
 
         <form action={signOut}>

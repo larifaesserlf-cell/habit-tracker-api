@@ -60,3 +60,28 @@ export type Reflexao = {
   humor_opcional: number | null
   created_at: string
 }
+
+export type MidiaTipo = 'livro' | 'filme' | 'serie' | 'documentario'
+export type MidiaStatus = 'quero_ver_ler' | 'em_andamento' | 'concluido' | 'abandonado'
+
+export type Midia = {
+  id: string
+  user_id: string
+  tipo: MidiaTipo
+  titulo: string
+  autor_diretor: string | null
+  genero: string | null
+  ano_lancamento: number | null
+  status: MidiaStatus
+  data_inicio: string | null
+  data_conclusao: string | null
+  nota: number | null
+  temporada_atual: number | null
+  progresso: string | null
+  plataforma: string | null
+  recomendaria: boolean | null
+  releitura_rewatch: boolean
+  comentario: string | null
+  tags: string[] | null
+  created_at: string
+}
