@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { setAreaArquivada } from '@/actions/areas'
 import { AreaForm } from './AreaForm'
+import { ArchiveAreaButton } from './ArchiveAreaButton'
 import type { Area } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
@@ -69,11 +70,7 @@ export default async function AreasPage({
                 <Link href={`/areas?edit=${area.id}`} className={styles.editLink}>
                   Editar
                 </Link>
-                <form action={setAreaArquivada.bind(null, area.id, true)}>
-                  <button type="submit" className={styles.archiveBtn}>
-                    Arquivar
-                  </button>
-                </form>
+                <ArchiveAreaButton id={area.id} nome={area.nome} />
               </div>
             </li>
           ))}
