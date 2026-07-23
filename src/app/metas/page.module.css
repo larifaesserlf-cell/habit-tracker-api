@@ -105,6 +105,16 @@
   margin-top: 0.15rem;
 }
 
+.itemAtrasada {
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.06);
+}
+
+.prazoAtrasado {
+  color: #fca5a5;
+  font-weight: 600;
+}
+
 .itemActions {
   display: flex;
   align-items: center;

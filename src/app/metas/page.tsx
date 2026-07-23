@@ -30,6 +30,21 @@ const STATUS_BADGE_CLASS: Record<MetaStatus, string> = {
   abandonada: styles.badgeAbandonada,
 }
 
+/** Dias entre hoje e a data-alvo (negativo = já passou). */
+function diasAteAlvo(dataAlvo: string): number {
+  const hoje = new Date().toISOString().slice(0, 10)
+  const msPorDia = 24 * 60 * 60 * 1000
+  return Math.round((Date.parse(dataAlvo) - Date.parse(hoje)) / msPorDia)
+}
+
+function formatPrazo(dias: number): string {
+  if (dias > 1) return `faltam ${dias} dias`
+  if (dias === 1) return 'falta 1 dia'
+  if (dias === 0) return 'é hoje'
+  if (dias === -1) return 'atrasada há 1 dia'
+  return `atrasada há ${-dias} dias`
+}
+
 export default async function MetasPage({
   searchParams,
 }: {
@@ -102,14 +117,27 @@ export default async function MetasPage({
               <p className={styles.empty}>Nenhuma meta nesta área ainda.</p>
             ) : (
               <ul className={styles.list}>
-                {metasDaArea.map((meta) => (
-                  <li key={meta.id} className={styles.item}>
+                {metasDaArea.map((meta) => {
+                  const dias = meta.data_alvo ? diasAteAlvo(meta.data_alvo) : null
+                  const atrasada = meta.status === 'ativa' && dias !== null && dias < 0
+                  return (
+                  <li key={meta.id} className={atrasada ? `${styles.item} ${styles.itemAtrasada}` : styles.item}>
                     <div className={styles.itemInfo}>
                       <div>
                         <div className={styles.itemNome}>{meta.titulo}</div>
                         <div className={styles.itemMeta}>
                           {TIPO_LABEL[meta.tipo]}
-                          {meta.data_alvo ? ` · até ${meta.data_alvo.split('-').reverse().join('/')}` : ''}
+                          {meta.data_alvo && (
+                            <>
+                              {' · até '}
+                              {meta.data_alvo.split('-').reverse().join('/')}
+                              {' ('}
+                              <span className={atrasada ? styles.prazoAtrasado : undefined}>
+                                {formatPrazo(dias!)}
+                              </span>
+                              {')'}
+                            </>
+                          )}
                         </div>
                       </div>
                       <span className={STATUS_BADGE_CLASS[meta.status]}>
@@ -144,7 +172,8 @@ export default async function MetasPage({
                       <DeleteMetaButton id={meta.id} titulo={meta.titulo} />
                     </div>
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             )}
           </section>
