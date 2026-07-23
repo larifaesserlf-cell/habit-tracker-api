@@ -28,6 +28,63 @@ function formatHora(hora: string): string {
   return hora.slice(0, 5)
 }
 
+type LayoutInfo = { lane: number; lanes: number }
+
+/**
+ * Blocos que se sobrepõem no mesmo dia ganham "lanes" (colunas) lado a lado,
+ * como num calendário: agrupa em clusters de sobreposição transitiva
+ * (varrendo por hora_inicio, fechando o cluster quando um bloco começa
+ * depois do fim máximo já visto) e, dentro de cada cluster, atribui a cada
+ * bloco a primeira lane livre (cujo último fim já é <= o início do bloco).
+ */
+function calcularLayoutSobreposicao(blocos: RotinaBloco[]): Map<string, LayoutInfo> {
+  const layout = new Map<string, LayoutInfo>()
+
+  for (let dia = 0; dia < 7; dia++) {
+    const doDia = blocos
+      .filter((b) => b.dia_semana === dia)
+      .sort((a, b) => toMinutes(a.hora_inicio) - toMinutes(b.hora_inicio))
+
+    let clusterAtual: RotinaBloco[] = []
+    let clusterFimMax = -Infinity
+    const clusters: RotinaBloco[][] = []
+    for (const b of doDia) {
+      const inicio = toMinutes(b.hora_inicio)
+      if (clusterAtual.length > 0 && inicio >= clusterFimMax) {
+        clusters.push(clusterAtual)
+        clusterAtual = []
+        clusterFimMax = -Infinity
+      }
+      clusterAtual.push(b)
+      clusterFimMax = Math.max(clusterFimMax, toMinutes(b.hora_fim))
+    }
+    if (clusterAtual.length > 0) clusters.push(clusterAtual)
+
+    for (const cluster of clusters) {
+      const fimPorLane: number[] = []
+      const lanePorBloco = new Map<string, number>()
+      for (const b of cluster) {
+        const inicio = toMinutes(b.hora_inicio)
+        const fim = toMinutes(b.hora_fim)
+        let lane = fimPorLane.findIndex((fimLane) => fimLane <= inicio)
+        if (lane === -1) {
+          lane = fimPorLane.length
+          fimPorLane.push(fim)
+        } else {
+          fimPorLane[lane] = fim
+        }
+        lanePorBloco.set(b.id, lane)
+      }
+      const lanes = fimPorLane.length
+      for (const b of cluster) {
+        layout.set(b.id, { lane: lanePorBloco.get(b.id)!, lanes })
+      }
+    }
+  }
+
+  return layout
+}
+
 export default async function RotinaPage({
   searchParams,
 }: {
@@ -72,6 +129,7 @@ export default async function RotinaPage({
   }
 
   const horasLabel = Array.from({ length: endHour - startHour }, (_, i) => startHour + i)
+  const layoutSobreposicao = calcularLayoutSobreposicao(blocos)
 
   return (
     <div className={styles.page}>
@@ -137,6 +195,8 @@ export default async function RotinaPage({
               const area = bloco.area_id ? areaPorId.get(bloco.area_id) : null
               const rowStart = Math.floor(slotDe(bloco.hora_inicio)) + 2
               const rowEnd = Math.ceil(slotDe(bloco.hora_fim)) + 2
+              const { lane, lanes } = layoutSobreposicao.get(bloco.id) ?? { lane: 0, lanes: 1 }
+              const larguraPct = 100 / lanes
               return (
                 <div
                   key={bloco.id}
@@ -146,6 +206,8 @@ export default async function RotinaPage({
                   style={{
                     gridColumn: bloco.dia_semana + 2,
                     gridRow: `${rowStart} / ${rowEnd}`,
+                    width: `calc(${larguraPct}% - 4px)`,
+                    marginLeft: `calc(${larguraPct * lane}% + 2px)`,
                     background: area ? `${area.cor}26` : 'rgba(124, 106, 247, 0.15)',
                     borderColor: area ? area.cor : 'rgba(124, 106, 247, 0.5)',
                   }}
