@@ -38,6 +38,9 @@ export default async function DashboardPage() {
           <Link href="/metas" className={styles.navLink}>
             Metas
           </Link>
+          <Link href="/rotina" className={styles.navLink}>
+            Rotina
+          </Link>
         </div>
 
         <form action={signOut}>

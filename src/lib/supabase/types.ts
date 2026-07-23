@@ -38,3 +38,16 @@ export type Meta = {
   data_alvo: string | null
   created_at: string
 }
+
+/** 0 = domingo, 6 = sábado (segue o padrão do JS Date#getDay()). */
+export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+export type RotinaBloco = {
+  id: string
+  user_id: string
+  dia_semana: DiaSemana
+  hora_inicio: string
+  hora_fim: string
+  atividade: string
+  area_id: string | null
+}
