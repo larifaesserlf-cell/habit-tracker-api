@@ -201,9 +201,34 @@
   box-sizing: border-box;
 }
 
-.form input[type='color'] {
-  padding: 0.25rem;
-  height: 2.4rem;
+.corRow {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.corSwatch,
+.corSwatchSelected {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s;
+}
+
+.corSwatch {
+  border: 2px solid transparent;
+}
+
+.corSwatch:hover {
+  transform: scale(1.1);
+}
+
+.corSwatchSelected {
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 2px rgba(124, 106, 247, 0.6);
+  transform: scale(1.1);
 }
 
 .form input:focus,

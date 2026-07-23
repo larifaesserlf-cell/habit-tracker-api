@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveArea, type AreaFormState } from '@/actions/areas'
@@ -9,8 +9,25 @@ import styles from './page.module.css'
 
 const initialState: AreaFormState = { status: 'idle' }
 
+// Paleta fixa em vez do seletor nativo do navegador (mais previsível e
+// combina com o resto do app). "Roxo" é o mesmo tom usado nos botões e
+// destaques da UI, então é o padrão pra área nova.
+const CORES = [
+  { valor: '#7c6af7', nome: 'Roxo' },
+  { valor: '#f87171', nome: 'Vermelho' },
+  { valor: '#fb923c', nome: 'Laranja' },
+  { valor: '#fbbf24', nome: 'Âmbar' },
+  { valor: '#4ade80', nome: 'Verde' },
+  { valor: '#2dd4bf', nome: 'Turquesa' },
+  { valor: '#38bdf8', nome: 'Azul' },
+  { valor: '#f472b6', nome: 'Rosa' },
+  { valor: '#a78bfa', nome: 'Lilás' },
+  { valor: '#94a3b8', nome: 'Cinza' },
+]
+
 export function AreaForm({ area }: { area: Area | null }) {
   const [state, formAction, pending] = useActionState(saveArea, initialState)
+  const [cor, setCor] = useState(area?.cor ?? CORES[0].valor)
   const router = useRouter()
 
   useEffect(() => {
@@ -35,9 +52,22 @@ export function AreaForm({ area }: { area: Area | null }) {
           <label htmlFor="icone">Ícone</label>
           <input id="icone" name="icone" defaultValue={area?.icone ?? '🔥'} maxLength={4} />
         </div>
-        <div className={styles.fieldSmall}>
-          <label htmlFor="cor">Cor</label>
-          <input id="cor" name="cor" type="color" defaultValue={area?.cor ?? '#7c6af7'} />
+        <div className={styles.field}>
+          <label>Cor</label>
+          <input type="hidden" name="cor" value={cor} />
+          <div className={styles.corRow}>
+            {CORES.map((c) => (
+              <button
+                key={c.valor}
+                type="button"
+                title={c.nome}
+                aria-pressed={cor === c.valor}
+                className={cor === c.valor ? styles.corSwatchSelected : styles.corSwatch}
+                style={{ background: c.valor }}
+                onClick={() => setCor(c.valor)}
+              />
+            ))}
+          </div>
         </div>
         <div className={styles.fieldGrow}>
           <label htmlFor="nome">Nome</label>
