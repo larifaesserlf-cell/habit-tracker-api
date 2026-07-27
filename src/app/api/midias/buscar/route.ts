@@ -54,17 +54,31 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ sugestoes: await buscarTmdb(q, apiKey) })
     }
     return NextResponse.json({ sugestoes: [] })
-  } catch {
+  } catch (erro) {
     // Qualquer falha de rede/parsing não deve quebrar o formulário —
-    // só não mostra sugestões dessa vez.
+    // só não mostra sugestões dessa vez. Loga pra investigação (logs da
+    // Vercel), mas nunca propaga o erro pro cliente.
+    console.error('[midias/buscar] Erro inesperado:', erro)
     return NextResponse.json({ sugestoes: [] })
   }
 }
 
 async function buscarGoogleBooks(q: string): Promise<SugestaoMidia[]> {
-  const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=6`
+  const apiKey = process.env.GOOGLE_BOOKS_API_KEY
+  const params = new URLSearchParams({ q, maxResults: '6' })
+  if (apiKey) params.set('key', apiKey)
+  const url = `https://www.googleapis.com/books/v1/volumes?${params.toString()}`
+
   const res = await fetch(url)
-  if (!res.ok) return []
+  if (!res.ok) {
+    // Sem uma GOOGLE_BOOKS_API_KEY, o Google aplica cota zero pra tráfego
+    // anônimo (429 "Queries per day" com quota_limit_value "0") — loga o
+    // status/corpo aqui pra isso ficar visível nos logs da Vercel em vez de
+    // virar silenciosamente "nenhuma sugestão" sem explicação nenhuma.
+    const corpo = await res.text().catch(() => '')
+    console.error(`[midias/buscar] Google Books API retornou ${res.status}:`, corpo.slice(0, 500))
+    return []
+  }
   const data = (await res.json()) as { items?: GoogleBooksItem[] }
   const items = data.items ?? []
 
@@ -77,7 +91,9 @@ async function buscarGoogleBooks(q: string): Promise<SugestaoMidia[]> {
       ano: Number.isFinite(ano) ? ano : null,
       autorDiretor: info.authors && info.authors.length > 0 ? info.authors.join(', ') : null,
       // Google Books às vezes serve a imagem por http — troca por https pra
-      // não dar mixed-content na página servida em https.
+      // não dar mixed-content na página servida em https. Livros sem capa
+      // disponível continuam na lista, só com capaUrl null (não são
+      // descartados do resultado).
       capaUrl: info.imageLinks?.thumbnail ? info.imageLinks.thumbnail.replace(/^http:/, 'https:') : null,
     }
   })
