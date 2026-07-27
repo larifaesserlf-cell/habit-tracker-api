@@ -206,6 +206,30 @@ export type OrcamentoMensal = {
   valor_limite: number
 }
 
+// ── Ciclo menstrual (área Saúde) ───────────────────────────────────────────
+
+export type CicloMenstrual = {
+  id: string
+  user_id: string
+  data_inicio: string
+  data_fim: string | null
+  created_at: string
+}
+
+export type FluxoMenstrual = 'nenhum' | 'leve' | 'moderado' | 'intenso'
+
+export type RegistroCiclo = {
+  id: string
+  user_id: string
+  data: string
+  fluxo: FluxoMenstrual
+  tpm: boolean
+  humor: string | null
+  sintomas: string[] | null
+  notas: string | null
+  created_at: string
+}
+
 // ── Lista compartilhada de filmes/séries (múltiplos membros) ──────────────
 
 export type ListaWatch = {

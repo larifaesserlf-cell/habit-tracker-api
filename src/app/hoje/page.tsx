@@ -178,6 +178,9 @@ export default async function HojePage() {
           <Link href="/metas" className={styles.navLink}>
             Metas
           </Link>
+          <Link href="/saude/ciclo" className={styles.navLink}>
+            Ciclo
+          </Link>
           <Link href="/midias" className={styles.navLink}>
             Mídias
           </Link>
