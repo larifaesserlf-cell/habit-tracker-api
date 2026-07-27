@@ -4,12 +4,12 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveMeta, type MetaFormState } from '@/actions/metas'
-import type { Area, Meta, MetaStatus, MetaTipo } from '@/lib/supabase/types'
+import type { Area, Habit, Meta, MetaStatus, MetaTipo } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 const initialState: MetaFormState = { status: 'idle' }
 
-export function MetaForm({ meta, areas }: { meta: Meta | null; areas: Area[] }) {
+export function MetaForm({ meta, areas, habitos }: { meta: Meta | null; areas: Area[]; habitos: Habit[] }) {
   const [state, formAction, pending] = useActionState(saveMeta, initialState)
   const router = useRouter()
 
@@ -22,6 +22,7 @@ export function MetaForm({ meta, areas }: { meta: Meta | null; areas: Area[] }) 
   const [tipo, setTipo] = useState<MetaTipo>(meta?.tipo ?? 'curto')
   const [dataAlvo, setDataAlvo] = useState(meta?.data_alvo ?? '')
   const [metaStatus, setMetaStatus] = useState<MetaStatus>(meta?.status ?? 'ativa')
+  const [habitoId, setHabitoId] = useState(meta?.habito_id ?? '')
 
   // Reseta os campos controlados assim que uma criação (não edição) é
   // bem-sucedida — o componente sobrevive à navegação de volta pra /metas
@@ -36,6 +37,7 @@ export function MetaForm({ meta, areas }: { meta: Meta | null; areas: Area[] }) 
       setTipo('curto')
       setDataAlvo('')
       setMetaStatus('ativa')
+      setHabitoId('')
     }
   }
 
@@ -58,6 +60,16 @@ export function MetaForm({ meta, areas }: { meta: Meta | null; areas: Area[] }) 
   useEffect(() => {
     const id = setTimeout(() => {
       if (areaSelectRef.current) areaSelectRef.current.value = areaId
+    }, 0)
+    return () => clearTimeout(id)
+  })
+
+  // Mesmo problema de reset assíncrono do <select> de área, aqui pro
+  // <select> opcional "Vincular a um hábito" (option value="" = "Nenhum").
+  const habitoSelectRef = useRef<HTMLSelectElement>(null)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (habitoSelectRef.current) habitoSelectRef.current.value = habitoId
     }, 0)
     return () => clearTimeout(id)
   })
@@ -132,6 +144,26 @@ export function MetaForm({ meta, areas }: { meta: Meta | null; areas: Area[] }) 
             </select>
           </div>
         )}
+      </div>
+
+      <div className={styles.formRow}>
+        <div className={styles.fieldGrow}>
+          <label htmlFor="habito_id">Vincular a um hábito (opcional)</label>
+          <select
+            ref={habitoSelectRef}
+            id="habito_id"
+            name="habito_id"
+            value={habitoId}
+            onChange={(e) => setHabitoId(e.target.value)}
+          >
+            <option value="">Nenhum</option>
+            {habitos.map((habito) => (
+              <option key={habito.id} value={habito.id}>
+                {habito.nome}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className={styles.formActions}>

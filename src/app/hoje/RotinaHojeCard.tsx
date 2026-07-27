@@ -17,7 +17,7 @@ function minutosDe(hora: string) {
 
 /**
  * Client Component: dia da semana e horário "agora" precisam vir do fuso do
- * navegador, não do servidor (mesmo motivo do hojeISO() em ReflexaoForm).
+ * navegador, não do servidor.
  */
 export function RotinaHojeCard({
   blocos,
@@ -38,7 +38,7 @@ export function RotinaHojeCard({
     <section className={styles.card}>
       <div className={styles.cardHeader}>
         <h2 className={styles.cardTitle}>Rotina de hoje ({DIAS_LABEL[diaSemana]})</h2>
-        <Link href="/rotina" className={styles.verTudoLink}>
+        <Link href="/habitos?secao=rotina" className={styles.verTudoLink}>
           Ver semana completa →
         </Link>
       </div>

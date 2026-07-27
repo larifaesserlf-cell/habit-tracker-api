@@ -5,7 +5,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { setMetaStatus } from '@/actions/metas'
 import { MetaForm } from './MetaForm'
 import { DeleteMetaButton } from './DeleteMetaButton'
-import type { Area, Meta, MetaStatus } from '@/lib/supabase/types'
+import { calcularProgressoMeta } from '@/lib/metaProgresso'
+import type { Area, Habit, Meta, MetaStatus } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -60,15 +61,42 @@ export default async function MetasPage({
     redirect('/login')
   }
 
-  const [{ data: areasData }, { data: metasData }] = await Promise.all([
+  const [{ data: areasData }, { data: metasData }, { data: habitsData }] = await Promise.all([
     supabase.from('areas').select('*').eq('user_id', user.id).order('ordem', { ascending: true }),
     // RLS já restringe a metas cujas áreas pertencem ao usuário.
     supabase.from('metas').select('*').order('created_at', { ascending: false }),
+    supabase.from('habits').select('*').eq('user_id', user.id).order('nome', { ascending: true }),
   ])
 
   const areas = (areasData ?? []) as Area[]
   const areasAtivas = areas.filter((a) => !a.arquivada)
   const metas = (metasData ?? []) as Meta[]
+  const habitos = (habitsData ?? []) as Habit[]
+  const habitoPorId = new Map(habitos.map((h) => [h.id, h]))
+
+  const habitoIdsComMeta = [...new Set(metas.map((m) => m.habito_id).filter((id): id is string => Boolean(id)))]
+  const { data: logsData } =
+    habitoIdsComMeta.length > 0
+      ? await supabase
+          .from('habit_logs')
+          .select('habit_id, data')
+          .eq('status', true)
+          .in('habit_id', habitoIdsComMeta)
+      : { data: [] as { habit_id: string; data: string }[] }
+
+  const datasConcluidasPorHabito = new Map<string, Set<string>>()
+  for (const log of logsData ?? []) {
+    const set = datasConcluidasPorHabito.get(log.habit_id) ?? new Set<string>()
+    set.add(log.data)
+    datasConcluidasPorHabito.set(log.habit_id, set)
+  }
+
+  function progressoDe(meta: Meta): number | null {
+    if (!meta.habito_id) return null
+    const habito = habitoPorId.get(meta.habito_id)
+    if (!habito) return null
+    return calcularProgressoMeta(meta, habito, datasConcluidasPorHabito.get(meta.habito_id) ?? new Set())
+  }
 
   const metasByArea = new Map<string, Meta[]>()
   for (const meta of metas) {
@@ -101,7 +129,7 @@ export default async function MetasPage({
       ) : (
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>{editingMeta ? 'Editar meta' : 'Nova meta'}</h2>
-          <MetaForm key={editingMeta?.id ?? 'new'} meta={editingMeta} areas={areasAtivas} />
+          <MetaForm key={editingMeta?.id ?? 'new'} meta={editingMeta} areas={areasAtivas} habitos={habitos} />
         </section>
       )}
 
@@ -144,6 +172,18 @@ export default async function MetasPage({
                         {STATUS_LABEL[meta.status]}
                       </span>
                     </div>
+                    {(() => {
+                      const progresso = progressoDe(meta)
+                      if (progresso === null) return null
+                      return (
+                        <div className={styles.progressWrap}>
+                          <div className={styles.progressBar}>
+                            <div className={styles.progressFill} style={{ width: `${progresso}%` }} />
+                          </div>
+                          <span className={styles.progressLabel}>{progresso}%</span>
+                        </div>
+                      )
+                    })()}
                     <div className={styles.itemActions}>
                       {meta.status === 'ativa' && (
                         <>

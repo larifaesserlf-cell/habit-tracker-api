@@ -38,6 +38,7 @@ export type Meta = {
   tipo: MetaTipo
   status: MetaStatus
   data_alvo: string | null
+  habito_id: string | null
   created_at: string
 }
 
@@ -52,15 +53,6 @@ export type RotinaBloco = {
   hora_fim: string
   atividade: string
   area_id: string | null
-}
-
-export type Reflexao = {
-  id: string
-  user_id: string
-  data: string
-  texto: string
-  humor_opcional: number | null
-  created_at: string
 }
 
 export type MidiaTipo = 'livro' | 'filme' | 'serie' | 'documentario'

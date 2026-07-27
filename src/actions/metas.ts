@@ -26,6 +26,7 @@ export async function saveMeta(
   const tipo = formData.get('tipo') as string | null
   const metaStatus = (formData.get('meta_status') as string | null) || 'ativa'
   const dataAlvo = (formData.get('data_alvo') as string | null)?.trim() || null
+  const habitoId = (formData.get('habito_id') as string | null)?.trim() || null
 
   if (!areaId) {
     return { status: 'error', message: 'Selecione uma área.' }
@@ -60,7 +61,28 @@ export async function saveMeta(
     return { status: 'error', message: 'Área inválida.' }
   }
 
-  const payload = { area_id: areaId, titulo, tipo, status: metaStatus, data_alvo: dataAlvo }
+  // Confere que o hábito (se informado) também pertence ao usuário — mesma
+  // defesa em profundidade aplicada acima para a área.
+  if (habitoId) {
+    const { data: habito } = await supabase
+      .from('habits')
+      .select('id')
+      .eq('id', habitoId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (!habito) {
+      return { status: 'error', message: 'Hábito inválido.' }
+    }
+  }
+
+  const payload = {
+    area_id: areaId,
+    titulo,
+    tipo,
+    status: metaStatus,
+    data_alvo: dataAlvo,
+    habito_id: habitoId,
+  }
   const { error } = id
     ? await supabase.from('metas').update(payload).eq('id', id)
     : await supabase.from('metas').insert(payload)

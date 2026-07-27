@@ -14,7 +14,7 @@ function hojeISO() {
 /**
  * Botão de check-in de hábito usado tanto em /habitos quanto em /hoje.
  * A data "de hoje" é calculada no navegador (não no servidor) pra bater
- * com o resto da tela de hoje (rotina, reflexão) e não depender do fuso
+ * com o resto da tela de hoje (rotina) e não depender do fuso
  * de onde o servidor roda. Por isso recebe uma janela de logs recentes
  * (não só o log de "hoje" do servidor) e encontra o certo aqui dentro.
  */

@@ -72,7 +72,7 @@ export async function saveBloco(
     return { status: 'error', message: `Erro ao salvar bloco: ${error.message}` }
   }
 
-  revalidatePath('/rotina')
+  revalidatePath('/habitos')
   return { status: 'success' }
 }
 
@@ -87,5 +87,5 @@ export async function deleteBloco(id: string) {
   if (!user) return
 
   await supabase.from('rotina_diaria').delete().eq('id', id).eq('user_id', user.id)
-  revalidatePath('/rotina')
+  revalidatePath('/habitos')
 }

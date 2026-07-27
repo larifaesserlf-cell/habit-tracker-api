@@ -5,11 +5,11 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/actions/auth'
 import { setMetaStatus } from '@/actions/metas'
 import { RotinaHojeCard } from './RotinaHojeCard'
-import { ReflexaoHojeCard } from './ReflexaoHojeCard'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
 import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
+import { calcularProgressoMeta } from '@/lib/metaProgresso'
 import { VIAGEM_STATUS_LABEL } from '../viagens/constants'
-import type { Area, Habit, Meta, Reflexao, RotinaBloco, Viagem } from '@/lib/supabase/types'
+import type { Area, Habit, Meta, RotinaBloco, Viagem } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 /**
  * Janela de 3 dias (pelo relógio do servidor) só pra garantir que o dia
  * "de hoje" do navegador do usuário — calculado no HabitCheckInButton,
- * client-side, igual à rotina e à reflexão desta página — esteja incluído
+ * client-side, igual à rotina desta página — esteja incluído
  * mesmo perto da virada da meia-noite.
  */
 function janelaRecente() {
@@ -93,7 +93,6 @@ export default async function HojePage() {
     { data: rotinaData },
     { data: habitsData },
     { data: metasData },
-    { data: reflexoesData },
     { data: viagensData },
   ] = await Promise.all([
     // Todas as áreas (não só ativas): hábitos/metas/rotina podem estar
@@ -103,13 +102,6 @@ export default async function HojePage() {
     supabase.from('rotina_diaria').select('*').eq('user_id', user.id),
     supabase.from('habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('metas').select('*').eq('status', 'ativa'),
-    supabase
-      .from('reflexoes')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('data', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(5),
     supabase.from('viagens').select('*').eq('user_id', user.id),
   ])
 
@@ -117,8 +109,8 @@ export default async function HojePage() {
   const areaPorId = new Map(areas.map((a) => [a.id, a]))
   const rotina = (rotinaData ?? []) as RotinaBloco[]
   const habits = (habitsData ?? []) as Habit[]
+  const habitoPorId = new Map(habits.map((h) => [h.id, h]))
   const metas = (metasData ?? []) as Meta[]
-  const reflexoesRecentes = (reflexoesData ?? []) as Reflexao[]
   const viagens = (viagensData ?? []) as Viagem[]
   const proximaViagem = escolherProximaViagem(viagens)
 
@@ -139,6 +131,33 @@ export default async function HojePage() {
     logsByHabit.set(log.habit_id, lista)
   }
 
+  // Progresso das metas em foco vinculadas a hábito: precisa do histórico
+  // completo de conclusões (não só a janela recente usada no check-in de
+  // hoje), então busca à parte, restrito aos hábitos realmente vinculados.
+  const habitoIdsComMeta = [...new Set(metas.map((m) => m.habito_id).filter((id): id is string => Boolean(id)))]
+  const { data: logsConcluidosData } =
+    habitoIdsComMeta.length > 0
+      ? await supabase
+          .from('habit_logs')
+          .select('habit_id, data')
+          .eq('status', true)
+          .in('habit_id', habitoIdsComMeta)
+      : { data: [] as { habit_id: string; data: string }[] }
+
+  const datasConcluidasPorHabito = new Map<string, Set<string>>()
+  for (const log of logsConcluidosData ?? []) {
+    const set = datasConcluidasPorHabito.get(log.habit_id) ?? new Set<string>()
+    set.add(log.data)
+    datasConcluidasPorHabito.set(log.habit_id, set)
+  }
+
+  function progressoDe(meta: Meta): number | null {
+    if (!meta.habito_id) return null
+    const habito = habitoPorId.get(meta.habito_id)
+    if (!habito) return null
+    return calcularProgressoMeta(meta, habito, datasConcluidasPorHabito.get(meta.habito_id) ?? new Set())
+  }
+
   const metasFoco = ordenarMetasFoco(metas)
   const habitsHoje = habits.filter((h) => habitoApareceEm(h, hojeISO()))
 
@@ -146,24 +165,18 @@ export default async function HojePage() {
     <div className={styles.page}>
       <div className={styles.topBar}>
         <div>
-          <h1 className={styles.title}>🔥 Hoje</h1>
+          <h1 className={styles.title}>Hoje</h1>
           <p className={styles.subtitle}>Logado como {user.email}</p>
         </div>
         <nav className={styles.nav}>
-          <Link href="/areas" className={styles.navLink}>
-            Áreas
+          <Link href="/hoje" className={styles.navLink}>
+            Início
           </Link>
           <Link href="/habitos" className={styles.navLink}>
-            Hábitos
+            Rotina e Hábitos
           </Link>
           <Link href="/metas" className={styles.navLink}>
             Metas
-          </Link>
-          <Link href="/rotina" className={styles.navLink}>
-            Rotina
-          </Link>
-          <Link href="/reflexoes" className={styles.navLink}>
-            Reflexões
           </Link>
           <Link href="/midias" className={styles.navLink}>
             Mídias
@@ -244,6 +257,7 @@ export default async function HojePage() {
           <ul className={styles.list}>
             {metasFoco.map((m) => {
               const area = areaPorId.get(m.area_id)
+              const progresso = progressoDe(m)
               return (
                 <li key={m.id} className={styles.item}>
                   <div className={styles.itemInfo}>
@@ -253,6 +267,14 @@ export default async function HojePage() {
                         {area ? `${area.icone} ${area.nome}` : ''}
                         {m.data_alvo ? ` · até ${formatDataBR(m.data_alvo)}` : ''}
                       </div>
+                      {progresso !== null && (
+                        <div className={styles.progressWrap}>
+                          <div className={styles.progressBar}>
+                            <div className={styles.progressFill} style={{ width: `${progresso}%` }} />
+                          </div>
+                          <span className={styles.progressLabel}>{progresso}%</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className={styles.itemActions}>
@@ -292,8 +314,6 @@ export default async function HojePage() {
           </div>
         </section>
       )}
-
-      <ReflexaoHojeCard recentes={reflexoesRecentes} />
     </div>
   )
 }

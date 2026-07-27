@@ -34,9 +34,9 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
   const [areaId, setAreaId] = useState(bloco?.area_id ?? '')
 
   // Reseta os campos controlados assim que uma criação (não edição) é
-  // bem-sucedida — o componente sobrevive à navegação de volta pra /rotina
-  // (mesma tela), então sem isso o próximo bloco herdaria os valores do
-  // anterior. Ajustado durante o render, não num efeito.
+  // bem-sucedida — o componente sobrevive à navegação de volta pra
+  // /habitos?secao=rotina (mesma tela), então sem isso o próximo bloco
+  // herdaria os valores do anterior. Ajustado durante o render, não num efeito.
   const [stateAnterior, setStateAnterior] = useState(state)
   if (state !== stateAnterior) {
     setStateAnterior(state)
@@ -51,7 +51,7 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
 
   useEffect(() => {
     if (state.status === 'success') {
-      router.push('/rotina')
+      router.push('/habitos?secao=rotina')
       router.refresh()
     }
   }, [state.status, router])
@@ -144,7 +144,7 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
           {pending ? 'Salvando…' : bloco ? 'Salvar alterações' : 'Criar bloco'}
         </button>
         {bloco && (
-          <Link href="/rotina" className={styles.cancelLink}>
+          <Link href="/habitos?secao=rotina" className={styles.cancelLink}>
             Cancelar
           </Link>
         )}

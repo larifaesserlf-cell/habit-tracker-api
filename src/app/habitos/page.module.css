@@ -29,6 +29,40 @@
   margin: 0;
 }
 
+.tabsWrap {
+  max-width: 720px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tab,
+.tabActive {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.tab {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.tabActive {
+  background: rgba(124, 106, 247, 0.2);
+  border: 1px solid rgba(124, 106, 247, 0.5);
+  color: #ffffff;
+}
+
 .card {
   max-width: 720px;
   margin: 0 auto 2rem;
