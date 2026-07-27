@@ -27,8 +27,31 @@ const CORES = [
 
 export function AreaForm({ area }: { area: Area | null }) {
   const [state, formAction, pending] = useActionState(saveArea, initialState)
+  // Controlados (em vez de defaultValue) porque o React reseta os campos
+  // não-controlados de um <form action={...}> depois de QUALQUER submissão,
+  // inclusive quando a action retorna erro — sem isso, o texto digitado
+  // some junto com a mensagem de validação.
+  const [icone, setIcone] = useState(area?.icone ?? '🔥')
   const [cor, setCor] = useState(area?.cor ?? CORES[0].valor)
+  const [nome, setNome] = useState(area?.nome ?? '')
+  const [ordem, setOrdem] = useState(String(area?.ordem ?? 0))
   const router = useRouter()
+
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra /areas
+  // (mesma tela), então sem isso a próxima área herdaria os valores da
+  // anterior. Ajustado durante o render (comparando com o status anterior),
+  // não num efeito, seguindo o padrão recomendado pelo React.
+  const [statusAnterior, setStatusAnterior] = useState(state.status)
+  if (state.status !== statusAnterior) {
+    setStatusAnterior(state.status)
+    if (state.status === 'success' && !area) {
+      setIcone('🔥')
+      setCor(CORES[0].valor)
+      setNome('')
+      setOrdem('0')
+    }
+  }
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -50,7 +73,7 @@ export function AreaForm({ area }: { area: Area | null }) {
       <div className={styles.formRow}>
         <div className={styles.fieldSmall}>
           <label htmlFor="icone">Ícone</label>
-          <input id="icone" name="icone" defaultValue={area?.icone ?? '🔥'} maxLength={4} />
+          <input id="icone" name="icone" value={icone} onChange={(e) => setIcone(e.target.value)} maxLength={4} />
         </div>
         <div className={styles.field}>
           <label>Cor</label>
@@ -74,14 +97,21 @@ export function AreaForm({ area }: { area: Area | null }) {
           <input
             id="nome"
             name="nome"
-            defaultValue={area?.nome ?? ''}
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Saúde"
             required
           />
         </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="ordem">Ordem</label>
-          <input id="ordem" name="ordem" type="number" defaultValue={area?.ordem ?? 0} />
+          <input
+            id="ordem"
+            name="ordem"
+            type="number"
+            value={ordem}
+            onChange={(e) => setOrdem(e.target.value)}
+          />
         </div>
       </div>
 

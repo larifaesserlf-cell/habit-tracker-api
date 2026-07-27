@@ -1,10 +1,10 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveViagem, type ViagemFormState } from '@/actions/viagens'
-import type { Viagem } from '@/lib/supabase/types'
+import type { Viagem, ViagemStatus } from '@/lib/supabase/types'
 import { VIAGEM_STATUSES, VIAGEM_STATUS_LABEL } from './constants'
 import styles from './page.module.css'
 
@@ -21,6 +21,40 @@ export function ViagemForm({
 }) {
   const [state, formAction, pending] = useActionState(saveViagem, initialState)
   const router = useRouter()
+
+  // Controlados (em vez de defaultValue) porque o React reseta os campos
+  // não-controlados de um <form action={...}> depois de QUALQUER submissão,
+  // inclusive quando a action retorna erro — sem isso, o texto digitado
+  // some junto com a mensagem de validação.
+  const [nome, setNome] = useState(viagem?.nome ?? '')
+  const [viagemStatus, setViagemStatus] = useState<ViagemStatus>(viagem?.status ?? 'quero_fazer')
+  const [dataPrevistaInicio, setDataPrevistaInicio] = useState(viagem?.data_prevista_inicio ?? '')
+  const [dataPrevistaFim, setDataPrevistaFim] = useState(viagem?.data_prevista_fim ?? '')
+  const [orcamentoEstimado, setOrcamentoEstimado] = useState(
+    viagem?.orcamento_estimado != null ? String(viagem.orcamento_estimado) : ''
+  )
+  const [orcamentoReal, setOrcamentoReal] = useState(
+    viagem?.orcamento_real != null ? String(viagem.orcamento_real) : ''
+  )
+  const [notas, setNotas] = useState(viagem?.notas ?? '')
+
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra /viagens
+  // (mesma tela), então sem isso a próxima viagem herdaria os valores da
+  // anterior. Ajustado durante o render, não num efeito.
+  const [statusAnterior, setStatusAnterior] = useState(state.status)
+  if (state.status !== statusAnterior) {
+    setStatusAnterior(state.status)
+    if (state.status === 'success' && !viagem) {
+      setNome('')
+      setViagemStatus('quero_fazer')
+      setDataPrevistaInicio('')
+      setDataPrevistaFim('')
+      setOrcamentoEstimado('')
+      setOrcamentoReal('')
+      setNotas('')
+    }
+  }
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -45,14 +79,20 @@ export function ViagemForm({
           <input
             id="nome"
             name="nome"
-            defaultValue={viagem?.nome ?? ''}
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Europa 2027"
             required
           />
         </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="viagem_status">Status</label>
-          <select id="viagem_status" name="viagem_status" defaultValue={viagem?.status ?? 'quero_fazer'}>
+          <select
+            id="viagem_status"
+            name="viagem_status"
+            value={viagemStatus}
+            onChange={(e) => setViagemStatus(e.target.value as ViagemStatus)}
+          >
             {VIAGEM_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {VIAGEM_STATUS_LABEL[s]}
@@ -69,7 +109,8 @@ export function ViagemForm({
             id="data_prevista_inicio"
             name="data_prevista_inicio"
             type="date"
-            defaultValue={viagem?.data_prevista_inicio ?? ''}
+            value={dataPrevistaInicio}
+            onChange={(e) => setDataPrevistaInicio(e.target.value)}
           />
         </div>
         <div className={styles.fieldSmall}>
@@ -78,7 +119,8 @@ export function ViagemForm({
             id="data_prevista_fim"
             name="data_prevista_fim"
             type="date"
-            defaultValue={viagem?.data_prevista_fim ?? ''}
+            value={dataPrevistaFim}
+            onChange={(e) => setDataPrevistaFim(e.target.value)}
           />
         </div>
         <div className={styles.fieldSmall}>
@@ -88,7 +130,8 @@ export function ViagemForm({
             name="orcamento_estimado"
             type="number"
             step="0.01"
-            defaultValue={viagem?.orcamento_estimado ?? ''}
+            value={orcamentoEstimado}
+            onChange={(e) => setOrcamentoEstimado(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -99,7 +142,8 @@ export function ViagemForm({
             name="orcamento_real"
             type="number"
             step="0.01"
-            defaultValue={viagem?.orcamento_real ?? ''}
+            value={orcamentoReal}
+            onChange={(e) => setOrcamentoReal(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -110,7 +154,8 @@ export function ViagemForm({
         <textarea
           id="viagem_notas"
           name="notas"
-          defaultValue={viagem?.notas ?? ''}
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
           rows={3}
           placeholder="Opcional"
           className={styles.textarea}

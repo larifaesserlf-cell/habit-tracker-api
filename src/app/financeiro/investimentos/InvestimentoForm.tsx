@@ -1,10 +1,10 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveInvestimento, type InvestimentoFormState } from '@/actions/financeiro'
-import type { Investimento } from '@/lib/supabase/types'
+import type { Investimento, TipoAtivo } from '@/lib/supabase/types'
 import { TIPOS_ATIVO, TIPO_ATIVO_LABEL } from '../constants'
 import styles from '../page.module.css'
 
@@ -19,6 +19,37 @@ function hojeISO() {
 export function InvestimentoForm({ investimento }: { investimento: Investimento | null }) {
   const [state, formAction, pending] = useActionState(saveInvestimento, initialState)
   const router = useRouter()
+
+  // Controlados (em vez de defaultValue) porque o React reseta os campos
+  // não-controlados de um <form action={...}> depois de QUALQUER submissão,
+  // inclusive quando a action retorna erro — sem isso, o texto digitado
+  // some junto com a mensagem de validação.
+  const [nomeAtivo, setNomeAtivo] = useState(investimento?.nome_ativo ?? '')
+  const [tipoAtivo, setTipoAtivo] = useState<TipoAtivo>(investimento?.tipo_ativo ?? 'outro')
+  const [valorAportado, setValorAportado] = useState(
+    investimento?.valor_aportado != null ? String(investimento.valor_aportado) : ''
+  )
+  const [dataAporte, setDataAporte] = useState(investimento?.data_aporte ?? hojeISO())
+  const [instituicao, setInstituicao] = useState(investimento?.instituicao ?? '')
+  const [notas, setNotas] = useState(investimento?.notas ?? '')
+
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra
+  // /financeiro/investimentos (mesma tela), então sem isso o próximo aporte
+  // herdaria os valores do anterior. Ajustado durante o render, não num
+  // efeito.
+  const [statusAnterior, setStatusAnterior] = useState(state.status)
+  if (state.status !== statusAnterior) {
+    setStatusAnterior(state.status)
+    if (state.status === 'success' && !investimento) {
+      setNomeAtivo('')
+      setTipoAtivo('outro')
+      setValorAportado('')
+      setDataAporte(hojeISO())
+      setInstituicao('')
+      setNotas('')
+    }
+  }
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -43,14 +74,20 @@ export function InvestimentoForm({ investimento }: { investimento: Investimento 
           <input
             id="inv_nome_ativo"
             name="nome_ativo"
-            defaultValue={investimento?.nome_ativo ?? ''}
+            value={nomeAtivo}
+            onChange={(e) => setNomeAtivo(e.target.value)}
             placeholder="Ex: Tesouro IPCA+ 2035"
             required
           />
         </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="inv_tipo_ativo">Tipo</label>
-          <select id="inv_tipo_ativo" name="tipo_ativo" defaultValue={investimento?.tipo_ativo ?? 'outro'}>
+          <select
+            id="inv_tipo_ativo"
+            name="tipo_ativo"
+            value={tipoAtivo}
+            onChange={(e) => setTipoAtivo(e.target.value as TipoAtivo)}
+          >
             {TIPOS_ATIVO.map((t) => (
               <option key={t} value={t}>
                 {TIPO_ATIVO_LABEL[t]}
@@ -69,7 +106,8 @@ export function InvestimentoForm({ investimento }: { investimento: Investimento 
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={investimento?.valor_aportado ?? ''}
+            value={valorAportado}
+            onChange={(e) => setValorAportado(e.target.value)}
             placeholder="0,00"
             required
           />
@@ -80,7 +118,8 @@ export function InvestimentoForm({ investimento }: { investimento: Investimento 
             id="inv_data_aporte"
             name="data_aporte"
             type="date"
-            defaultValue={investimento?.data_aporte ?? hojeISO()}
+            value={dataAporte}
+            onChange={(e) => setDataAporte(e.target.value)}
             required
           />
         </div>
@@ -89,7 +128,8 @@ export function InvestimentoForm({ investimento }: { investimento: Investimento 
           <input
             id="inv_instituicao"
             name="instituicao"
-            defaultValue={investimento?.instituicao ?? ''}
+            value={instituicao}
+            onChange={(e) => setInstituicao(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -97,7 +137,13 @@ export function InvestimentoForm({ investimento }: { investimento: Investimento 
 
       <div className={styles.fieldGrow}>
         <label htmlFor="inv_notas">Notas</label>
-        <input id="inv_notas" name="notas" defaultValue={investimento?.notas ?? ''} placeholder="Opcional" />
+        <input
+          id="inv_notas"
+          name="notas"
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
+          placeholder="Opcional"
+        />
       </div>
 
       <div className={styles.formActions}>

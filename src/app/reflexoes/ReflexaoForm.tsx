@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveReflexao, type ReflexaoFormState } from '@/actions/reflexoes'
@@ -26,32 +26,39 @@ function hojeISO() {
 
 export function ReflexaoForm({ reflexao }: { reflexao: Reflexao | null }) {
   const [state, formAction, pending] = useActionState(saveReflexao, initialState)
-  const [humor, setHumor] = useState<number | null>(reflexao?.humor_opcional ?? null)
-  const formRef = useRef<HTMLFormElement>(null)
   const router = useRouter()
 
-  useEffect(() => {
-    if (state.status !== 'success') return
+  // Controlados (em vez de defaultValue) porque o React reseta os campos
+  // não-controlados de um <form action={...}> depois de QUALQUER submissão,
+  // inclusive quando a action retorna erro — sem isso, o texto digitado
+  // some junto com a mensagem de validação.
+  const [texto, setTexto] = useState(reflexao?.texto ?? '')
+  const [data, setData] = useState(reflexao?.data ?? hojeISO())
+  const [humor, setHumor] = useState<number | null>(reflexao?.humor_opcional ?? null)
 
-    if (reflexao) {
-      // Edição: volta pra listagem.
-      router.push('/reflexoes')
-    } else {
-      // Criação: o formulário continua na tela (mesma key 'new', não
-      // remonta sozinho) — limpa os campos manualmente pra próxima
-      // reflexão começar em branco, sem herdar o humor da anterior.
-      formRef.current?.reset()
-      // Reage ao resultado assíncrono da Server Action; resetar via remount
-      // (key) também limparia o formulário em caso de erro, apagando o texto
-      // digitado.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra
+  // /reflexoes (mesma tela), então sem isso a próxima reflexão herdaria o
+  // texto/humor da anterior. Ajustado durante o render, não num efeito.
+  const [statusAnterior, setStatusAnterior] = useState(state.status)
+  if (state.status !== statusAnterior) {
+    setStatusAnterior(state.status)
+    if (state.status === 'success' && !reflexao) {
+      setTexto('')
+      setData(hojeISO())
       setHumor(null)
     }
-    router.refresh()
-  }, [state.status, reflexao, router])
+  }
+
+  useEffect(() => {
+    if (state.status === 'success') {
+      router.push('/reflexoes')
+      router.refresh()
+    }
+  }, [state.status, router])
 
   return (
-    <form ref={formRef} action={formAction} className={styles.form}>
+    <form action={formAction} className={styles.form}>
       {reflexao && <input type="hidden" name="id" value={reflexao.id} />}
       <input type="hidden" name="humor_opcional" value={humor ?? ''} />
 
@@ -63,7 +70,8 @@ export function ReflexaoForm({ reflexao }: { reflexao: Reflexao | null }) {
 
       <textarea
         name="texto"
-        defaultValue={reflexao?.texto ?? ''}
+        value={texto}
+        onChange={(e) => setTexto(e.target.value)}
         placeholder="Como foi o seu dia?"
         className={styles.textarea}
         rows={6}
@@ -74,7 +82,7 @@ export function ReflexaoForm({ reflexao }: { reflexao: Reflexao | null }) {
       <div className={styles.formRow}>
         <div className={styles.fieldSmall}>
           <label htmlFor="data">Data</label>
-          <input id="data" name="data" type="date" defaultValue={reflexao?.data ?? hojeISO()} />
+          <input id="data" name="data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
         </div>
 
         <div className={styles.humorField}>

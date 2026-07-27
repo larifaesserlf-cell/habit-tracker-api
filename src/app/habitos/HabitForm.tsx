@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveHabit, type HabitFormState } from '@/actions/habits'
@@ -30,9 +30,9 @@ export function HabitForm({ habit, areas }: { habit: Habit | null; areas: Area[]
   // dias/área/frequência de um totalmente diferente. Ajustado durante o
   // render (comparando com o status anterior), não num efeito, seguindo o
   // padrão recomendado pelo React para "resetar estado quando algo muda".
-  const [statusAnterior, setStatusAnterior] = useState(state.status)
-  if (state.status !== statusAnterior) {
-    setStatusAnterior(state.status)
+  const [stateAnterior, setStateAnterior] = useState(state)
+  if (state !== stateAnterior) {
+    setStateAnterior(state)
     if (state.status === 'success' && !habit) {
       setNome('')
       setAreaId('')
@@ -48,6 +48,22 @@ export function HabitForm({ habit, areas }: { habit: Habit | null; areas: Area[]
       router.refresh()
     }
   }, [state.status, router])
+
+  // O <select> de área tem uma option value="" ("Sem área"). Depois de
+  // QUALQUER submissão, o browser reseta nativamente os controles do form
+  // — para <input>/<textarea> o React corrige sozinho (tem um "value
+  // tracker" interno pra perceber mutação externa), mas pra <select> não
+  // há essa correção automática, e o reset acontece de forma assíncrona
+  // (depois do commit do React), então nem um re-render nem uma
+  // remontagem por key bastam. O fix é reaplicar o valor certo via ref
+  // num timeout 0, depois que o reset nativo já rodou.
+  const areaSelectRef = useRef<HTMLSelectElement>(null)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (areaSelectRef.current) areaSelectRef.current.value = areaId
+    }, 0)
+    return () => clearTimeout(id)
+  })
 
   function alternarDiaSemana(dia: number) {
     setDiasSemana((atual) => (atual.includes(dia) ? atual.filter((d) => d !== dia) : [...atual, dia]))
@@ -90,7 +106,13 @@ export function HabitForm({ habit, areas }: { habit: Habit | null; areas: Area[]
         </div>
         <div className={styles.fieldGrow}>
           <label htmlFor="area_id">Área</label>
-          <select id="area_id" name="area_id" value={areaId} onChange={(e) => setAreaId(e.target.value)}>
+          <select
+            ref={areaSelectRef}
+            id="area_id"
+            name="area_id"
+            value={areaId}
+            onChange={(e) => setAreaId(e.target.value)}
+          >
             <option value="">Sem área</option>
             {areas.map((area) => (
               <option key={area.id} value={area.id}>

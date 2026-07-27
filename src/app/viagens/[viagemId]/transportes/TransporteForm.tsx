@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveTransporte, type TransporteFormState } from '@/actions/transportes'
@@ -22,12 +22,62 @@ export function TransporteForm({
   const router = useRouter()
   const baseHref = `/viagens/${viagemId}/transportes`
 
+  // Controlados (em vez de defaultValue) porque o React reseta os campos
+  // não-controlados de um <form action={...}> depois de QUALQUER submissão,
+  // inclusive quando a action retorna erro — sem isso, o texto digitado
+  // some junto com a mensagem de validação.
+  const [tipo, setTipo] = useState(transporte?.tipo ?? '')
+  const [destinoOrigemId, setDestinoOrigemId] = useState(transporte?.destino_origem_id ?? '')
+  const [destinoDestinoId, setDestinoDestinoId] = useState(transporte?.destino_destino_id ?? '')
+  const [custoEstimado, setCustoEstimado] = useState(
+    transporte?.custo_estimado != null ? String(transporte.custo_estimado) : ''
+  )
+  const [duracaoEstimadaHoras, setDuracaoEstimadaHoras] = useState(
+    transporte?.duracao_estimada_horas != null ? String(transporte.duracao_estimada_horas) : ''
+  )
+  const [notas, setNotas] = useState(transporte?.notas ?? '')
+
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra tela de
+  // transportes (mesma tela), então sem isso o próximo transporte herdaria
+  // os valores do anterior. Ajustado durante o render, não num efeito.
+  const [stateAnterior, setStateAnterior] = useState(state)
+  if (state !== stateAnterior) {
+    setStateAnterior(state)
+    if (state.status === 'success' && !transporte) {
+      setTipo('')
+      setDestinoOrigemId('')
+      setDestinoDestinoId('')
+      setCustoEstimado('')
+      setDuracaoEstimadaHoras('')
+      setNotas('')
+    }
+  }
+
   useEffect(() => {
     if (state.status === 'success') {
       router.push(baseHref)
       router.refresh()
     }
   }, [state.status, baseHref, router])
+
+  // Os <select> de destino têm uma option value="" ("Sem destino
+  // cadastrado"). Depois de QUALQUER submissão, o browser reseta
+  // nativamente os controles do form — para <input>/<textarea> o React
+  // corrige sozinho (tem um "value tracker" interno pra perceber mutação
+  // externa), mas pra <select> não há essa correção automática, e o reset
+  // acontece de forma assíncrona (depois do commit do React), então nem um
+  // re-render nem uma remontagem por key bastam. O fix é reaplicar o valor
+  // certo via ref num timeout 0, depois que o reset nativo já rodou.
+  const destinoOrigemRef = useRef<HTMLSelectElement>(null)
+  const destinoDestinoRef = useRef<HTMLSelectElement>(null)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (destinoOrigemRef.current) destinoOrigemRef.current.value = destinoOrigemId
+      if (destinoDestinoRef.current) destinoDestinoRef.current.value = destinoDestinoId
+    }, 0)
+    return () => clearTimeout(id)
+  })
 
   return (
     <form action={formAction} className={styles.form}>
@@ -46,7 +96,8 @@ export function TransporteForm({
           <input
             id="tipo"
             name="tipo"
-            defaultValue={transporte?.tipo ?? ''}
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
             placeholder="Voo, trem, ônibus, carro alugado…"
             required
           />
@@ -54,9 +105,11 @@ export function TransporteForm({
         <div className={styles.fieldGrow}>
           <label htmlFor="destino_origem_id">De</label>
           <select
+            ref={destinoOrigemRef}
             id="destino_origem_id"
             name="destino_origem_id"
-            defaultValue={transporte?.destino_origem_id ?? ''}
+            value={destinoOrigemId}
+            onChange={(e) => setDestinoOrigemId(e.target.value)}
           >
             <option value="">Sem destino cadastrado</option>
             {destinos.map((d) => (
@@ -69,9 +122,11 @@ export function TransporteForm({
         <div className={styles.fieldGrow}>
           <label htmlFor="destino_destino_id">Para</label>
           <select
+            ref={destinoDestinoRef}
             id="destino_destino_id"
             name="destino_destino_id"
-            defaultValue={transporte?.destino_destino_id ?? ''}
+            value={destinoDestinoId}
+            onChange={(e) => setDestinoDestinoId(e.target.value)}
           >
             <option value="">Sem destino cadastrado</option>
             {destinos.map((d) => (
@@ -91,7 +146,8 @@ export function TransporteForm({
             name="custo_estimado"
             type="number"
             step="0.01"
-            defaultValue={transporte?.custo_estimado ?? ''}
+            value={custoEstimado}
+            onChange={(e) => setCustoEstimado(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -103,7 +159,8 @@ export function TransporteForm({
             type="number"
             step="0.5"
             min="0"
-            defaultValue={transporte?.duracao_estimada_horas ?? ''}
+            value={duracaoEstimadaHoras}
+            onChange={(e) => setDuracaoEstimadaHoras(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -114,7 +171,8 @@ export function TransporteForm({
         <textarea
           id="notas"
           name="notas"
-          defaultValue={transporte?.notas ?? ''}
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
           rows={2}
           placeholder="Opcional"
           className={styles.textarea}

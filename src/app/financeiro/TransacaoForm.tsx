@@ -26,9 +26,43 @@ export function TransacaoForm({
   categoriasExistentes: string[]
 }) {
   const [state, formAction, pending] = useActionState(saveTransacao, initialState)
-  const [tipoSelecionado, setTipoSelecionado] = useState<TransacaoTipo>(transacao?.tipo ?? 'despesa')
   const router = useRouter()
   const ehParcelaExistente = Boolean(transacao && transacao.total_parcelas > 1)
+
+  // Controlados (em vez de defaultValue) porque o React reseta os campos
+  // não-controlados de um <form action={...}> depois de QUALQUER submissão,
+  // inclusive quando a action retorna erro — sem isso, o texto digitado
+  // some junto com a mensagem de validação.
+  const contaIdInicial = transacao?.conta_id ?? contas[0]?.id ?? ''
+  const [contaId, setContaId] = useState(contaIdInicial)
+  const [tipoSelecionado, setTipoSelecionado] = useState<TransacaoTipo>(transacao?.tipo ?? 'despesa')
+  const [valor, setValor] = useState(transacao?.valor != null ? String(transacao.valor) : '')
+  const [totalParcelas, setTotalParcelas] = useState('1')
+  const [categoria, setCategoria] = useState(transacao?.categoria ?? '')
+  const [subcategoria, setSubcategoria] = useState(transacao?.subcategoria ?? '')
+  const [data, setData] = useState(transacao?.data ?? hojeISO())
+  const [descricao, setDescricao] = useState(transacao?.descricao ?? '')
+  const [fixo, setFixo] = useState(transacao?.fixo ?? false)
+
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra
+  // /financeiro (mesma tela), então sem isso a próxima transação herdaria
+  // os valores da anterior. Ajustado durante o render, não num efeito.
+  const [statusAnterior, setStatusAnterior] = useState(state.status)
+  if (state.status !== statusAnterior) {
+    setStatusAnterior(state.status)
+    if (state.status === 'success' && !transacao) {
+      setContaId(contas[0]?.id ?? '')
+      setTipoSelecionado('despesa')
+      setValor('')
+      setTotalParcelas('1')
+      setCategoria('')
+      setSubcategoria('')
+      setData(hojeISO())
+      setDescricao('')
+      setFixo(false)
+    }
+  }
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -53,7 +87,8 @@ export function TransacaoForm({
           <select
             id="transacao_conta"
             name="conta_id"
-            defaultValue={transacao?.conta_id ?? contas[0]?.id ?? ''}
+            value={contaId}
+            onChange={(e) => setContaId(e.target.value)}
             required
           >
             {contas.map((c) => (
@@ -88,7 +123,8 @@ export function TransacaoForm({
             type="number"
             step="0.01"
             min="0.01"
-            defaultValue={transacao?.valor ?? ''}
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
             placeholder="0,00"
             required
           />
@@ -105,7 +141,8 @@ export function TransacaoForm({
               type="number"
               min="1"
               max="60"
-              defaultValue={1}
+              value={totalParcelas}
+              onChange={(e) => setTotalParcelas(e.target.value)}
               placeholder="1 (à vista)"
             />
           </div>
@@ -130,7 +167,8 @@ export function TransacaoForm({
             id="transacao_categoria"
             name="categoria"
             list="categorias-existentes"
-            defaultValue={transacao?.categoria ?? ''}
+            value={categoria}
+            onChange={(e) => setCategoria(e.target.value)}
             placeholder="Ex: Moradia, Mercado, Salário…"
             required
           />
@@ -145,7 +183,8 @@ export function TransacaoForm({
           <input
             id="transacao_subcategoria"
             name="subcategoria"
-            defaultValue={transacao?.subcategoria ?? ''}
+            value={subcategoria}
+            onChange={(e) => setSubcategoria(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -155,7 +194,8 @@ export function TransacaoForm({
             id="transacao_data"
             name="data"
             type="date"
-            defaultValue={transacao?.data ?? hojeISO()}
+            value={data}
+            onChange={(e) => setData(e.target.value)}
             required
           />
         </div>
@@ -167,12 +207,13 @@ export function TransacaoForm({
           <input
             id="transacao_descricao"
             name="descricao"
-            defaultValue={transacao?.descricao ?? ''}
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
             placeholder="Opcional"
           />
         </div>
         <label className={styles.checkboxField}>
-          <input type="checkbox" name="fixo" defaultChecked={transacao?.fixo ?? false} />
+          <input type="checkbox" name="fixo" checked={fixo} onChange={(e) => setFixo(e.target.checked)} />
           Gasto/receita fixo
         </label>
       </div>

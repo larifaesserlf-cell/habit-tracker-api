@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveHospedagem, type HospedagemFormState } from '@/actions/hospedagens'
@@ -21,6 +21,36 @@ export function HospedagemForm({
   const [state, formAction, pending] = useActionState(saveHospedagem, initialState)
   const router = useRouter()
   const baseHref = `/viagens/${viagemId}/destinos/${destinoId}`
+
+  // Controlados (em vez de defaultValue) porque o React reseta os campos
+  // não-controlados de um <form action={...}> depois de QUALQUER submissão,
+  // inclusive quando a action retorna erro — sem isso, o texto digitado
+  // some junto com a mensagem de validação.
+  const [nome, setNome] = useState(hospedagem?.nome ?? '')
+  const [tipo, setTipo] = useState(hospedagem?.tipo ?? '')
+  const [regiaoBairro, setRegiaoBairro] = useState(hospedagem?.regiao_bairro ?? '')
+  const [faixaPreco, setFaixaPreco] = useState(hospedagem?.faixa_preco ?? '')
+  const [link, setLink] = useState(hospedagem?.link ?? '')
+  const [reservado, setReservado] = useState(hospedagem?.reservado ?? false)
+  const [notas, setNotas] = useState(hospedagem?.notas ?? '')
+
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra tela do
+  // destino (mesma tela), então sem isso a próxima hospedagem herdaria os
+  // valores da anterior. Ajustado durante o render, não num efeito.
+  const [statusAnterior, setStatusAnterior] = useState(state.status)
+  if (state.status !== statusAnterior) {
+    setStatusAnterior(state.status)
+    if (state.status === 'success' && !hospedagem) {
+      setNome('')
+      setTipo('')
+      setRegiaoBairro('')
+      setFaixaPreco('')
+      setLink('')
+      setReservado(false)
+      setNotas('')
+    }
+  }
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -46,7 +76,8 @@ export function HospedagemForm({
           <input
             id="hosp_nome"
             name="nome"
-            defaultValue={hospedagem?.nome ?? ''}
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
             placeholder="Ex: Hotel Central"
             required
           />
@@ -56,7 +87,8 @@ export function HospedagemForm({
           <input
             id="hosp_tipo"
             name="tipo"
-            defaultValue={hospedagem?.tipo ?? ''}
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
             placeholder="Hotel, Airbnb…"
           />
         </div>
@@ -65,7 +97,8 @@ export function HospedagemForm({
           <input
             id="regiao_bairro"
             name="regiao_bairro"
-            defaultValue={hospedagem?.regiao_bairro ?? ''}
+            value={regiaoBairro}
+            onChange={(e) => setRegiaoBairro(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -74,7 +107,8 @@ export function HospedagemForm({
           <input
             id="faixa_preco"
             name="faixa_preco"
-            defaultValue={hospedagem?.faixa_preco ?? ''}
+            value={faixaPreco}
+            onChange={(e) => setFaixaPreco(e.target.value)}
             placeholder="$$"
           />
         </div>
@@ -83,10 +117,15 @@ export function HospedagemForm({
       <div className={styles.formRow}>
         <div className={styles.fieldGrow}>
           <label htmlFor="hosp_link">Link</label>
-          <input id="hosp_link" name="link" defaultValue={hospedagem?.link ?? ''} placeholder="Opcional" />
+          <input id="hosp_link" name="link" value={link} onChange={(e) => setLink(e.target.value)} placeholder="Opcional" />
         </div>
         <label className={styles.checkboxField}>
-          <input type="checkbox" name="reservado" defaultChecked={hospedagem?.reservado ?? false} />
+          <input
+            type="checkbox"
+            name="reservado"
+            checked={reservado}
+            onChange={(e) => setReservado(e.target.checked)}
+          />
           Já reservado
         </label>
       </div>
@@ -96,7 +135,8 @@ export function HospedagemForm({
         <textarea
           id="hosp_notas"
           name="notas"
-          defaultValue={hospedagem?.notas ?? ''}
+          value={notas}
+          onChange={(e) => setNotas(e.target.value)}
           rows={2}
           placeholder="Opcional"
           className={styles.textarea}

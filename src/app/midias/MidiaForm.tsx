@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveMidia, type MidiaFormState } from '@/actions/midias'
-import type { Midia, MidiaTipo } from '@/lib/supabase/types'
+import type { Midia, MidiaStatus, MidiaTipo } from '@/lib/supabase/types'
 import { TIPOS, TIPO_LABEL, TIPO_EMOJI, STATUSES, STATUS_LABEL } from './constants'
 import styles from './page.module.css'
 
@@ -64,9 +64,60 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
   const [capaUrlValue, setCapaUrlValue] = useState(midia?.capa_url ?? '')
   const [capaPreview, setCapaPreview] = useState<string | null>(midia?.capa_url ?? null)
 
+  // Idem para os campos "avançados" — controlados pra sobreviver a um erro
+  // de validação sem perder o que já foi digitado.
+  const [midiaStatus, setMidiaStatus] = useState<MidiaStatus>(midia?.status ?? 'quero_ver_ler')
+  const [nota, setNota] = useState(midia?.nota != null ? String(midia.nota) : '')
+  const [genero, setGenero] = useState(midia?.genero ?? '')
+  const [dataInicio, setDataInicio] = useState(midia?.data_inicio ?? '')
+  const [dataConclusao, setDataConclusao] = useState(midia?.data_conclusao ?? '')
+  const [temporadaAtual, setTemporadaAtual] = useState(
+    midia?.temporada_atual != null ? String(midia.temporada_atual) : ''
+  )
+  const [progresso, setProgresso] = useState(midia?.progresso ?? '')
+  const [plataforma, setPlataforma] = useState(midia?.plataforma ?? '')
+  const [recomendaria, setRecomendaria] = useState(
+    midia?.recomendaria === true ? 'sim' : midia?.recomendaria === false ? 'nao' : ''
+  )
+  const [releituraRewatch, setReleituraRewatch] = useState(midia?.releitura_rewatch ?? false)
+  const [tags, setTags] = useState(midia?.tags?.join(', ') ?? '')
+  const [comentario, setComentario] = useState(midia?.comentario ?? '')
+
   const router = useRouter()
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const requestIdRef = useRef(0)
+
+  // Reseta os campos controlados assim que uma criação (não edição) é
+  // bem-sucedida — o componente sobrevive à navegação de volta pra /midias
+  // (mesma tela), então sem isso o próximo cadastro herdaria os valores do
+  // anterior. Ajustado durante o render, não num efeito.
+  const [stateAnterior, setStateAnterior] = useState(state)
+  if (state !== stateAnterior) {
+    setStateAnterior(state)
+    if (state.status === 'success' && !midia) {
+      setShowMore(false)
+      setTipo('livro')
+      setSugestoes([])
+      setMostrarSugestoes(false)
+      setTituloValue('')
+      setAnoValue('')
+      setAutorDiretorValue('')
+      setCapaUrlValue('')
+      setCapaPreview(null)
+      setMidiaStatus('quero_ver_ler')
+      setNota('')
+      setGenero('')
+      setDataInicio('')
+      setDataConclusao('')
+      setTemporadaAtual('')
+      setProgresso('')
+      setPlataforma('')
+      setRecomendaria('')
+      setReleituraRewatch(false)
+      setTags('')
+      setComentario('')
+    }
+  }
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -80,6 +131,22 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
       if (debounceRef.current) clearTimeout(debounceRef.current)
     }
   }, [])
+
+  // O <select> de "Recomendaria?" tem uma option value="". Depois de
+  // QUALQUER submissão, o browser reseta nativamente os controles do form
+  // — para <input>/<textarea> o React corrige sozinho (tem um "value
+  // tracker" interno pra perceber mutação externa), mas pra <select> não
+  // há essa correção automática, e o reset acontece de forma assíncrona
+  // (depois do commit do React), então nem um re-render nem uma
+  // remontagem por key bastam. O fix é reaplicar o valor certo via ref
+  // num timeout 0, depois que o reset nativo já rodou.
+  const recomendariaRef = useRef<HTMLSelectElement>(null)
+  useEffect(() => {
+    const id = setTimeout(() => {
+      if (recomendariaRef.current) recomendariaRef.current.value = recomendaria
+    }, 0)
+    return () => clearTimeout(id)
+  })
 
   async function buscarSugestoes(q: string, tipoAtual: MidiaTipo) {
     const meuId = ++requestIdRef.current
@@ -152,9 +219,6 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
     setCapaUrlValue('')
     setCapaPreview(null)
   }
-
-  const recomendariaDefault =
-    midia?.recomendaria === true ? 'sim' : midia?.recomendaria === false ? 'nao' : ''
 
   return (
     <form action={formAction} className={styles.form}>
@@ -238,7 +302,12 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
         </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="midia_status">Status</label>
-          <select id="midia_status" name="midia_status" defaultValue={midia?.status ?? 'quero_ver_ler'}>
+          <select
+            id="midia_status"
+            name="midia_status"
+            value={midiaStatus}
+            onChange={(e) => setMidiaStatus(e.target.value as MidiaStatus)}
+          >
             {STATUSES.map((s) => (
               <option key={s} value={s}>
                 {STATUS_LABEL[s]}
@@ -255,7 +324,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
             min="0"
             max="10"
             step="0.1"
-            defaultValue={midia?.nota ?? ''}
+            value={nota}
+            onChange={(e) => setNota(e.target.value)}
             placeholder="Opcional"
           />
         </div>
@@ -287,7 +357,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
               <input
                 id="genero"
                 name="genero"
-                defaultValue={midia?.genero ?? ''}
+                value={genero}
+                onChange={(e) => setGenero(e.target.value)}
                 placeholder="Opcional"
               />
             </div>
@@ -311,7 +382,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
                 id="data_inicio"
                 name="data_inicio"
                 type="date"
-                defaultValue={midia?.data_inicio ?? ''}
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
               />
             </div>
             <div className={styles.fieldSmall}>
@@ -320,7 +392,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
                 id="data_conclusao"
                 name="data_conclusao"
                 type="date"
-                defaultValue={midia?.data_conclusao ?? ''}
+                value={dataConclusao}
+                onChange={(e) => setDataConclusao(e.target.value)}
               />
             </div>
             <div className={styles.fieldSmall}>
@@ -330,7 +403,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
                 name="temporada_atual"
                 type="number"
                 min="1"
-                defaultValue={midia?.temporada_atual ?? ''}
+                value={temporadaAtual}
+                onChange={(e) => setTemporadaAtual(e.target.value)}
                 placeholder="Se série"
               />
             </div>
@@ -342,7 +416,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
               <input
                 id="progresso"
                 name="progresso"
-                defaultValue={midia?.progresso ?? ''}
+                value={progresso}
+                onChange={(e) => setProgresso(e.target.value)}
                 placeholder='Ex: "cap. 12" ou "S02E05"'
               />
             </div>
@@ -351,7 +426,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
               <input
                 id="plataforma"
                 name="plataforma"
-                defaultValue={midia?.plataforma ?? ''}
+                value={plataforma}
+                onChange={(e) => setPlataforma(e.target.value)}
                 placeholder="Netflix, papel, Kindle…"
               />
             </div>
@@ -360,7 +436,13 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
           <div className={styles.formRow}>
             <div className={styles.fieldSmall}>
               <label htmlFor="recomendaria">Recomendaria?</label>
-              <select id="recomendaria" name="recomendaria" defaultValue={recomendariaDefault}>
+              <select
+                ref={recomendariaRef}
+                id="recomendaria"
+                name="recomendaria"
+                value={recomendaria}
+                onChange={(e) => setRecomendaria(e.target.value)}
+              >
                 <option value="">Não informado</option>
                 <option value="sim">Sim</option>
                 <option value="nao">Não</option>
@@ -370,7 +452,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
               <input
                 type="checkbox"
                 name="releitura_rewatch"
-                defaultChecked={midia?.releitura_rewatch ?? false}
+                checked={releituraRewatch}
+                onChange={(e) => setReleituraRewatch(e.target.checked)}
               />
               Releitura / rewatch
             </label>
@@ -379,7 +462,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
               <input
                 id="tags"
                 name="tags"
-                defaultValue={midia?.tags?.join(', ') ?? ''}
+                value={tags}
+                onChange={(e) => setTags(e.target.value)}
                 placeholder="separadas por vírgula"
               />
             </div>
@@ -390,7 +474,8 @@ export function MidiaForm({ midia }: { midia: Midia | null }) {
             <textarea
               id="comentario"
               name="comentario"
-              defaultValue={midia?.comentario ?? ''}
+              value={comentario}
+              onChange={(e) => setComentario(e.target.value)}
               rows={3}
               placeholder="Opcional"
               className={styles.textarea}
