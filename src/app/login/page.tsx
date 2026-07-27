@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { Suspense, useState, useTransition } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import styles from './page.module.css'
 
@@ -9,9 +10,11 @@ type LoginState =
   | { status: 'error'; errors: { email?: string; password?: string; general?: string } }
   | { status: 'success' }
 
-export default function LoginPage() {
+function LoginForm() {
   const [state, setState] = useState<LoginState>({ status: 'idle' })
   const [isPending, startTransition] = useTransition()
+  const redirectTo = useSearchParams().get('redirectTo')
+  const registroHref = redirectTo ? `/registro?redirectTo=${encodeURIComponent(redirectTo)}` : '/registro'
 
   function validate(email: string, password: string) {
     const errors: NonNullable<Extract<LoginState, { status: 'error' }>['errors']> = {}
@@ -65,7 +68,6 @@ export default function LoginPage() {
 
       setState({ status: 'success' })
       // Redireciona após login bem-sucedido (respeita ?redirectTo= definido pelo proxy)
-      const redirectTo = new URLSearchParams(window.location.search).get('redirectTo')
       window.location.href = redirectTo || '/hoje'
     })
   }
@@ -157,11 +159,19 @@ export default function LoginPage() {
 
         <p className={styles.registerHint}>
           Não tem conta?{' '}
-          <a href="/registro" className={styles.registerLink}>
+          <a href={registroHref} className={styles.registerLink}>
             Criar conta
           </a>
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }

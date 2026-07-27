@@ -72,6 +72,9 @@ export default async function MidiasPage({
           ← Painel
         </Link>
         <h1 className={styles.title}>Mídias</h1>
+        <Link href="/midias/juntos" className={styles.statsLink}>
+          🎬 Assistir juntos →
+        </Link>
         <Link href="/midias/estatisticas" className={styles.statsLink}>
           Ver estatísticas →
         </Link>

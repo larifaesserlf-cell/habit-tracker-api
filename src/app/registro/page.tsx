@@ -1,14 +1,16 @@
 'use client'
 
-import { useActionState } from 'react'
+import { Suspense, useActionState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { signUp, type SignUpState } from '@/actions/auth'
 import styles from './page.module.css'
 
 const initialState: SignUpState = { status: 'idle' }
 
-export default function RegistroPage() {
+function RegistroForm() {
   const [state, action, pending] = useActionState(signUp, initialState)
+  const painelHref = useSearchParams().get('redirectTo') || '/hoje'
 
   if (state.status === 'success') {
     return (
@@ -22,7 +24,7 @@ export default function RegistroPage() {
                 Sua conta <strong>{state.email}</strong> foi criada e você já
                 está conectado.
               </p>
-              <Link href="/hoje" className={styles.backLink}>
+              <Link href={painelHref} className={styles.backLink}>
                 Ir para o painel →
               </Link>
             </>
@@ -176,5 +178,13 @@ export default function RegistroPage() {
         </p>
       </div>
     </div>
+  )
+}
+
+export default function RegistroPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegistroForm />
+    </Suspense>
   )
 }

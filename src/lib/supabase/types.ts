@@ -213,3 +213,44 @@ export type OrcamentoMensal = {
   mes_referencia: string
   valor_limite: number
 }
+
+// ── Lista compartilhada de filmes/séries (múltiplos membros) ──────────────
+
+export type ListaWatch = {
+  id: string
+  nome: string
+  criado_por: string
+  created_at: string
+}
+
+export type ItemWatchTipo = 'filme' | 'serie'
+export type ItemWatchStatus = 'quero_assistir' | 'em_andamento' | 'concluido'
+
+export type ItemWatch = {
+  id: string
+  lista_id: string
+  tipo: ItemWatchTipo
+  titulo: string
+  ano_lancamento: number | null
+  capa_url: string | null
+  status: ItemWatchStatus
+  adicionado_por: string
+  nota: number | null
+  comentario: string | null
+  created_at: string
+}
+
+export type ConviteLista = {
+  id: string
+  lista_id: string
+  token: string
+  criado_por: string
+  usado: boolean
+  created_at: string
+}
+
+export type MembroLista = {
+  user_id: string
+  email: string | null
+  nome: string | null
+}
