@@ -7,6 +7,7 @@ import { setMetaStatus } from '@/actions/metas'
 import { RotinaHojeCard } from './RotinaHojeCard'
 import { ReflexaoHojeCard } from './ReflexaoHojeCard'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
+import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { VIAGEM_STATUS_LABEL } from '../viagens/constants'
 import type { Area, Habit, Meta, Reflexao, RotinaBloco, Viagem } from '@/lib/supabase/types'
 import styles from './page.module.css'
@@ -27,6 +28,13 @@ function janelaRecente() {
 
 function formatDataBR(data: string) {
   return data.split('-').reverse().join('/')
+}
+
+/** "Hoje" pelo relógio do servidor — mesma simplificação já usada em outras
+ *  telas (ex: mês do Financeiro): suficiente pra um app pessoal de um único
+ *  fuso, sem a complexidade de refazer o cálculo no navegador aqui. */
+function hojeISO() {
+  return new Date().toISOString().slice(0, 10)
 }
 
 /** Metas com data_alvo mais próxima primeiro; sem data_alvo, mais recentes por último. */
@@ -132,6 +140,7 @@ export default async function HojePage() {
   }
 
   const metasFoco = ordenarMetasFoco(metas)
+  const habitsHoje = habits.filter((h) => habitoApareceEm(h, hojeISO()))
 
   return (
     <div className={styles.page}>
@@ -184,9 +193,11 @@ export default async function HojePage() {
         </div>
         {habits.length === 0 ? (
           <p className={styles.empty}>Nenhum hábito cadastrado ainda.</p>
+        ) : habitsHoje.length === 0 ? (
+          <p className={styles.empty}>Nenhum hábito previsto pra hoje.</p>
         ) : (
           <ul className={styles.list}>
-            {habits.map((h) => {
+            {habitsHoje.map((h) => {
               const area = h.area_id ? areaPorId.get(h.area_id) : null
               return (
                 <li key={h.id} className={styles.item}>
@@ -194,7 +205,7 @@ export default async function HojePage() {
                     <div>
                       <div className={styles.itemNome}>{h.nome}</div>
                       <div className={styles.itemMeta}>
-                        {h.frequencia === 'diario' ? 'Diário' : 'Semanal'}
+                        {labelFrequencia(h)}
                         {area && (
                           <>
                             {' · '}

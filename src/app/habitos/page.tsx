@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { HabitForm } from './HabitForm'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
+import { labelFrequencia } from '@/lib/habitFrequencia'
 import type { Area, Habit } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
@@ -108,7 +109,7 @@ export default async function HabitosPage({
                   <div>
                     <div className={styles.itemNome}>{habit.nome}</div>
                     <div className={styles.itemMeta}>
-                      {habit.frequencia === 'diario' ? 'Diário' : 'Semanal'}
+                      {labelFrequencia(habit)}
                       {area && (
                         <>
                           {' · '}

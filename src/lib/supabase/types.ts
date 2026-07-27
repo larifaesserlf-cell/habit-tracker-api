@@ -1,4 +1,4 @@
-export type Frequencia = 'diario' | 'semanal'
+export type Frequencia = 'diario' | 'dias_especificos' | 'mensal'
 
 export type Area = {
   id: string
@@ -15,6 +15,8 @@ export type Habit = {
   user_id: string
   nome: string
   frequencia: Frequencia
+  dias_semana: number[] | null
+  dia_mes: number | null
   created_at: string
   area_id: string | null
 }

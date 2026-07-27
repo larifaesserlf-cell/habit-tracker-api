@@ -25,8 +25,31 @@ export async function saveHabit(
     return { status: 'error', message: 'O nome do hábito deve ter pelo menos 2 caracteres.' }
   }
 
-  if (frequencia !== 'diario' && frequencia !== 'semanal') {
+  if (frequencia !== 'diario' && frequencia !== 'dias_especificos' && frequencia !== 'mensal') {
     return { status: 'error', message: 'Selecione uma frequência válida.' }
+  }
+
+  // dias_semana/dia_mes só fazem sentido pra sua própria frequência — os
+  // dois ficam null quando não se aplicam, pra não sobrar lixo de uma
+  // frequência anterior se o hábito for editado e trocar de tipo.
+  let diasSemana: number[] | null = null
+  let diaMes: number | null = null
+
+  if (frequencia === 'dias_especificos') {
+    diasSemana = formData
+      .getAll('dias_semana')
+      .map((v) => Number(v))
+      .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
+    if (diasSemana.length === 0) {
+      return { status: 'error', message: 'Selecione pelo menos um dia da semana.' }
+    }
+  }
+
+  if (frequencia === 'mensal') {
+    diaMes = Number(formData.get('dia_mes'))
+    if (!Number.isInteger(diaMes) || diaMes < 1 || diaMes > 31) {
+      return { status: 'error', message: 'Selecione um dia do mês entre 1 e 31.' }
+    }
   }
 
   const supabase = await createSupabaseServerClient()
@@ -37,15 +60,11 @@ export async function saveHabit(
     return { status: 'error', message: 'Sessão expirada. Faça login novamente.' }
   }
 
+  const payload = { nome, frequencia, dias_semana: diasSemana, dia_mes: diaMes, area_id: areaId }
+
   const { error } = id
-    ? await supabase
-        .from('habits')
-        .update({ nome, frequencia, area_id: areaId })
-        .eq('id', id)
-        .eq('user_id', user.id)
-    : await supabase
-        .from('habits')
-        .insert({ nome, frequencia, area_id: areaId, user_id: user.id })
+    ? await supabase.from('habits').update(payload).eq('id', id).eq('user_id', user.id)
+    : await supabase.from('habits').insert({ ...payload, user_id: user.id })
 
   if (error) {
     return { status: 'error', message: `Erro ao salvar hábito: ${error.message}` }
