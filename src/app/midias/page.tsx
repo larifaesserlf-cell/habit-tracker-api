@@ -105,71 +105,80 @@ export default async function MidiasPage({
           <ul className={styles.list}>
             {midias.map((m) => (
               <li key={m.id} className={styles.item}>
-                <div className={styles.itemTop}>
-                  <span className={styles.tipoBadge}>
-                    {TIPO_EMOJI[m.tipo]} {TIPO_LABEL[m.tipo]}
-                  </span>
-                  <span className={STATUS_BADGE_CLASS[m.status]}>{STATUS_LABEL[m.status]}</span>
-                  {m.nota !== null && <span className={styles.notaBadge}>★ {m.nota}</span>}
-                </div>
-                <div className={styles.itemTitulo}>{m.titulo}</div>
-                {(m.autor_diretor || m.genero || m.ano_lancamento) && (
-                  <div className={styles.itemMeta}>
-                    {[m.autor_diretor, m.genero, m.ano_lancamento].filter(Boolean).join(' · ')}
+                <div className={styles.itemRow}>
+                  {m.capa_url ? (
+                    <img src={m.capa_url} alt="" className={styles.itemCapa} />
+                  ) : (
+                    <div className={styles.itemCapaFallback}>{TIPO_EMOJI[m.tipo]}</div>
+                  )}
+                  <div className={styles.itemConteudo}>
+                    <div className={styles.itemTop}>
+                      <span className={styles.tipoBadge}>
+                        {TIPO_EMOJI[m.tipo]} {TIPO_LABEL[m.tipo]}
+                      </span>
+                      <span className={STATUS_BADGE_CLASS[m.status]}>{STATUS_LABEL[m.status]}</span>
+                      {m.nota !== null && <span className={styles.notaBadge}>★ {m.nota}</span>}
+                    </div>
+                    <div className={styles.itemTitulo}>{m.titulo}</div>
+                    {(m.autor_diretor || m.genero || m.ano_lancamento) && (
+                      <div className={styles.itemMeta}>
+                        {[m.autor_diretor, m.genero, m.ano_lancamento].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
+                    {(m.temporada_atual || m.progresso || m.plataforma) && (
+                      <div className={styles.itemMeta}>
+                        {[
+                          m.temporada_atual ? `Temporada ${m.temporada_atual}` : null,
+                          m.progresso,
+                          m.plataforma,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </div>
+                    )}
+                    {m.comentario && <p className={styles.itemComentario}>{m.comentario}</p>}
+                    <div className={styles.itemActions}>
+                      {m.status === 'quero_ver_ler' && (
+                        <>
+                          <form action={setMidiaStatus.bind(null, m.id, 'em_andamento')}>
+                            <button type="submit" className={styles.quickBtn}>
+                              Começar
+                            </button>
+                          </form>
+                          <form action={setMidiaStatus.bind(null, m.id, 'abandonado')}>
+                            <button type="submit" className={styles.quickBtn}>
+                              Abandonar
+                            </button>
+                          </form>
+                        </>
+                      )}
+                      {m.status === 'em_andamento' && (
+                        <>
+                          <form action={setMidiaStatus.bind(null, m.id, 'concluido')}>
+                            <button type="submit" className={styles.quickBtn}>
+                              Concluir
+                            </button>
+                          </form>
+                          <form action={setMidiaStatus.bind(null, m.id, 'abandonado')}>
+                            <button type="submit" className={styles.quickBtn}>
+                              Abandonar
+                            </button>
+                          </form>
+                        </>
+                      )}
+                      {(m.status === 'concluido' || m.status === 'abandonado') && (
+                        <form action={setMidiaStatus.bind(null, m.id, 'em_andamento')}>
+                          <button type="submit" className={styles.quickBtn}>
+                            Reabrir
+                          </button>
+                        </form>
+                      )}
+                      <Link href={`/midias?edit=${m.id}`} className={styles.editLink}>
+                        Editar
+                      </Link>
+                      <DeleteMidiaButton id={m.id} titulo={m.titulo} />
+                    </div>
                   </div>
-                )}
-                {(m.temporada_atual || m.progresso || m.plataforma) && (
-                  <div className={styles.itemMeta}>
-                    {[
-                      m.temporada_atual ? `Temporada ${m.temporada_atual}` : null,
-                      m.progresso,
-                      m.plataforma,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </div>
-                )}
-                {m.comentario && <p className={styles.itemComentario}>{m.comentario}</p>}
-                <div className={styles.itemActions}>
-                  {m.status === 'quero_ver_ler' && (
-                    <>
-                      <form action={setMidiaStatus.bind(null, m.id, 'em_andamento')}>
-                        <button type="submit" className={styles.quickBtn}>
-                          Começar
-                        </button>
-                      </form>
-                      <form action={setMidiaStatus.bind(null, m.id, 'abandonado')}>
-                        <button type="submit" className={styles.quickBtn}>
-                          Abandonar
-                        </button>
-                      </form>
-                    </>
-                  )}
-                  {m.status === 'em_andamento' && (
-                    <>
-                      <form action={setMidiaStatus.bind(null, m.id, 'concluido')}>
-                        <button type="submit" className={styles.quickBtn}>
-                          Concluir
-                        </button>
-                      </form>
-                      <form action={setMidiaStatus.bind(null, m.id, 'abandonado')}>
-                        <button type="submit" className={styles.quickBtn}>
-                          Abandonar
-                        </button>
-                      </form>
-                    </>
-                  )}
-                  {(m.status === 'concluido' || m.status === 'abandonado') && (
-                    <form action={setMidiaStatus.bind(null, m.id, 'em_andamento')}>
-                      <button type="submit" className={styles.quickBtn}>
-                        Reabrir
-                      </button>
-                    </form>
-                  )}
-                  <Link href={`/midias?edit=${m.id}`} className={styles.editLink}>
-                    Editar
-                  </Link>
-                  <DeleteMidiaButton id={m.id} titulo={m.titulo} />
                 </div>
               </li>
             ))}

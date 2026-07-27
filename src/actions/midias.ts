@@ -104,6 +104,7 @@ export async function saveMidia(
     releitura_rewatch: formData.get('releitura_rewatch') === 'on',
     comentario: textoOuNull(formData, 'comentario'),
     tags: tags.length > 0 ? tags : null,
+    capa_url: textoOuNull(formData, 'capa_url'),
   }
 
   const { error } = id

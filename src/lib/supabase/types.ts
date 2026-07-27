@@ -83,6 +83,7 @@ export type Midia = {
   releitura_rewatch: boolean
   comentario: string | null
   tags: string[] | null
+  capa_url: string | null
   created_at: string
 }
 
