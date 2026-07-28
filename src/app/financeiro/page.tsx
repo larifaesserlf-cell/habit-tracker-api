@@ -135,15 +135,21 @@ export default async function FinanceiroPage({
     0
   )
 
-  // Agrupa as despesas do mês por categoria — não há lista fixa de
-  // categorias no código, o gráfico reflete o que existir nos dados.
-  const valorPorCategoria = new Map<string, number>()
-  for (const t of transacoesDoMes) {
-    if (t.tipo !== 'despesa') continue
-    valorPorCategoria.set(t.categoria, (valorPorCategoria.get(t.categoria) ?? 0) + t.valor)
+  // Agrupa as transações do mês por categoria (despesas e receitas
+  // separadas) — não há lista fixa de categorias no código, os gráficos
+  // refletem o que existir nos dados.
+  function agruparPorCategoria(tipoAlvo: Transacao['tipo']) {
+    const valorPorCategoria = new Map<string, number>()
+    for (const t of transacoesDoMes) {
+      if (t.tipo !== tipoAlvo) continue
+      valorPorCategoria.set(t.categoria, (valorPorCategoria.get(t.categoria) ?? 0) + t.valor)
+    }
+    return Array.from(valorPorCategoria, ([categoria, valor]) => ({ categoria, valor })).sort(
+      (a, b) => b.valor - a.valor
+    )
   }
-  const gastosPorCategoria = Array.from(valorPorCategoria, ([categoria, valor]) => ({ categoria, valor }))
-    .sort((a, b) => b.valor - a.valor)
+  const gastosPorCategoria = agruparPorCategoria('despesa')
+  const receitasPorCategoria = agruparPorCategoria('receita')
 
   const categoriasExistentes = Array.from(new Set(transacoes.map((t) => t.categoria))).sort()
 
@@ -265,6 +271,11 @@ export default async function FinanceiroPage({
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>Gastos por categoria ({nomeMes(mesSelecionado)})</h2>
         <GastosPorCategoriaChart dados={gastosPorCategoria} />
+      </section>
+
+      <section className={styles.card}>
+        <h2 className={styles.cardTitle}>Receitas por categoria ({nomeMes(mesSelecionado)})</h2>
+        <GastosPorCategoriaChart dados={receitasPorCategoria} mensagemVazia="Nenhuma receita registrada este mês." />
       </section>
 
       {temCartaoCredito && (

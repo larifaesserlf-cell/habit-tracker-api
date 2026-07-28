@@ -24,9 +24,15 @@ const CORES = [
 
 type Fatia = { categoria: string; valor: number }
 
-export function GastosPorCategoriaChart({ dados }: { dados: Fatia[] }) {
+export function GastosPorCategoriaChart({
+  dados,
+  mensagemVazia = 'Nenhum gasto registrado este mês.',
+}: {
+  dados: Fatia[]
+  mensagemVazia?: string
+}) {
   if (dados.length === 0) {
-    return <p className={styles.empty}>Nenhum gasto registrado este mês.</p>
+    return <p className={styles.empty}>{mensagemVazia}</p>
   }
 
   const total = dados.reduce((soma, d) => soma + d.valor, 0)
