@@ -147,7 +147,7 @@ export type Transporte = {
   notas: string | null
 }
 
-export type ContaTipo = 'corrente' | 'poupanca' | 'carteira' | 'corretora'
+export type ContaTipo = 'corrente' | 'poupanca' | 'carteira' | 'corretora' | 'cartao_credito'
 
 export type ContaFinanceira = {
   id: string
@@ -155,6 +155,7 @@ export type ContaFinanceira = {
   nome: string
   tipo: ContaTipo
   saldo_atual: number
+  dia_vencimento_fatura: number | null
   created_at: string
 }
 
@@ -170,6 +171,7 @@ export type Transacao = {
   subcategoria: string | null
   valor: number
   data: string
+  data_fatura: string | null
   descricao: string | null
   fixo: boolean
   total_parcelas: number

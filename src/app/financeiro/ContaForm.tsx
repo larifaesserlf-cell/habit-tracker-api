@@ -21,6 +21,9 @@ export function ContaForm({ conta }: { conta: ContaFinanceira | null }) {
   const [nome, setNome] = useState(conta?.nome ?? '')
   const [tipo, setTipo] = useState<ContaTipo>(conta?.tipo ?? 'corrente')
   const [saldoAtual, setSaldoAtual] = useState(conta?.saldo_atual != null ? String(conta.saldo_atual) : '')
+  const [diaVencimentoFatura, setDiaVencimentoFatura] = useState(
+    conta?.dia_vencimento_fatura != null ? String(conta.dia_vencimento_fatura) : ''
+  )
 
   // Reseta os campos controlados assim que uma criação (não edição) é
   // bem-sucedida — o componente sobrevive à navegação de volta pra
@@ -33,6 +36,7 @@ export function ContaForm({ conta }: { conta: ContaFinanceira | null }) {
       setNome('')
       setTipo('corrente')
       setSaldoAtual('')
+      setDiaVencimentoFatura('')
     }
   }
 
@@ -96,6 +100,22 @@ export function ContaForm({ conta }: { conta: ContaFinanceira | null }) {
               value={saldoAtual}
               onChange={(e) => setSaldoAtual(e.target.value)}
               placeholder="0,00"
+            />
+          </div>
+        )}
+        {tipo === 'cartao_credito' && (
+          <div className={styles.fieldSmall}>
+            <label htmlFor="conta_dia_vencimento">Dia de vencimento da fatura</label>
+            <input
+              id="conta_dia_vencimento"
+              name="dia_vencimento_fatura"
+              type="number"
+              min="1"
+              max="31"
+              value={diaVencimentoFatura}
+              onChange={(e) => setDiaVencimentoFatura(e.target.value)}
+              placeholder="Ex: 10"
+              required
             />
           </div>
         )}

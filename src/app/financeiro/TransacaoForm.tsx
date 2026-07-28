@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveTransacao, type TransacaoFormState } from '@/actions/financeiro'
 import type { ContaFinanceira, Transacao, TransacaoTipo } from '@/lib/supabase/types'
-import { TRANSACAO_TIPOS, TRANSACAO_TIPO_LABEL, CATEGORIAS_SUGERIDAS } from './constants'
+import { TRANSACAO_TIPOS, TRANSACAO_TIPO_LABEL, CATEGORIAS_SUGERIDAS, calcularDataFatura, formatDataBR } from './constants'
 import styles from './page.module.css'
 
 const initialState: TransacaoFormState = { status: 'idle' }
@@ -47,6 +47,12 @@ export function TransacaoForm({
   const [showMore, setShowMore] = useState(Boolean(transacao?.subcategoria))
 
   const sugestoesCategoria = Array.from(new Set([...CATEGORIAS_SUGERIDAS, ...categoriasExistentes])).sort()
+
+  const contaSelecionada = contas.find((c) => c.id === contaId)
+  const previewFatura =
+    contaSelecionada?.tipo === 'cartao_credito' && contaSelecionada.dia_vencimento_fatura != null && data
+      ? calcularDataFatura(data, contaSelecionada.dia_vencimento_fatura)
+      : null
 
   // Reseta os campos controlados assim que uma criação (não edição) é
   // bem-sucedida — o componente sobrevive à navegação de volta pra
@@ -211,6 +217,12 @@ export function TransacaoForm({
           />
         </div>
       </div>
+
+      {previewFatura && (
+        <p className={styles.faturaPreview}>
+          💳 Essa compra vai entrar na fatura que vence em {formatDataBR(previewFatura)}.
+        </p>
+      )}
 
       <div className={styles.formRow}>
         <div className={styles.fieldGrow}>

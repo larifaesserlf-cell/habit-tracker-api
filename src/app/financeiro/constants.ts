@@ -1,12 +1,13 @@
 import type { ContaFinanceira, ContaTipo, StatusPagamento, Transacao, TransacaoTipo, TipoAtivo } from '@/lib/supabase/types'
 
-export const CONTA_TIPOS: ContaTipo[] = ['corrente', 'poupanca', 'carteira', 'corretora']
+export const CONTA_TIPOS: ContaTipo[] = ['corrente', 'poupanca', 'carteira', 'corretora', 'cartao_credito']
 
 export const CONTA_TIPO_LABEL: Record<ContaTipo, string> = {
   corrente: 'Conta corrente',
   poupanca: 'Poupança',
   carteira: 'Carteira',
   corretora: 'Corretora',
+  cartao_credito: 'Cartão de crédito',
 }
 
 export const TRANSACAO_TIPOS: TransacaoTipo[] = ['receita', 'despesa']
@@ -105,4 +106,20 @@ export function calcularSaldoConta(conta: ContaFinanceira, transacoesDaConta: Tr
     if (t.status_pagamento !== 'pago') return saldo
     return t.tipo === 'receita' ? saldo + t.valor : saldo - t.valor
   }, conta.saldo_atual)
+}
+
+/**
+ * Data de vencimento da fatura de cartão de crédito a que uma compra
+ * pertence: sempre no mês seguinte ao da compra, no `diaVencimento`
+ * configurado na conta — clampado pro último dia do mês seguinte quando
+ * esse dia não existir nele (ex: dia 31 numa fatura que vence em fevereiro).
+ */
+export function calcularDataFatura(dataCompra: string, diaVencimento: number): string {
+  const [ano, mes] = dataCompra.split('-').map(Number)
+  const totalMeses = mes // mes (1-indexado) já aponta pro mês seguinte em base 0
+  const novoAno = ano + Math.floor(totalMeses / 12)
+  const novoMes = (totalMeses % 12) + 1
+  const ultimoDiaDoMesSeguinte = new Date(Date.UTC(novoAno, novoMes, 0)).getUTCDate()
+  const dia = Math.min(diaVencimento, ultimoDiaDoMesSeguinte)
+  return `${novoAno}-${String(novoMes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`
 }

@@ -9,6 +9,7 @@ import { DeleteTransacaoButton } from './DeleteTransacaoButton'
 import { FiltrosBar } from './FiltrosBar'
 import { GastosPorCategoriaChart } from './GastosPorCategoriaChart'
 import { StatusPagamentoToggle } from './StatusPagamentoToggle'
+import { FaturaToggleButton } from './FaturaToggleButton'
 import { CONTA_TIPO_LABEL, formatMoeda, formatDataBR, iconeCategoria, calcularSaldoConta } from './constants'
 import type { ContaFinanceira, StatusPagamento, Transacao } from '@/lib/supabase/types'
 import styles from './page.module.css'
@@ -146,6 +147,45 @@ export default async function FinanceiroPage({
 
   const categoriasExistentes = Array.from(new Set(transacoes.map((t) => t.categoria))).sort()
 
+  // ── Cartão de crédito: duas visões separadas ──────────────────────────
+  // "Gastos do mês" = por competência (data real da compra); "Faturas" =
+  // por vencimento (data_fatura), agrupadas por conta + fatura.
+  const temCartaoCredito = contas.some((c) => c.tipo === 'cartao_credito')
+
+  const gastosCartaoDoMes = transacoesDoMes.filter((t) => contaPorId.get(t.conta_id)?.tipo === 'cartao_credito')
+  const totalGastosCartaoDoMes = gastosCartaoDoMes.reduce(
+    (soma, t) => soma + (t.tipo === 'despesa' ? t.valor : -t.valor),
+    0
+  )
+
+  type FaturaGrupo = {
+    contaId: string
+    contaNome: string
+    dataFatura: string
+    transacoes: Transacao[]
+    total: number
+    todasPagas: boolean
+  }
+  const faturasMap = new Map<string, FaturaGrupo>()
+  for (const t of transacoes) {
+    const conta = contaPorId.get(t.conta_id)
+    if (conta?.tipo !== 'cartao_credito' || !t.data_fatura) continue
+    const chave = `${t.conta_id}|${t.data_fatura}`
+    const grupo = faturasMap.get(chave) ?? {
+      contaId: t.conta_id,
+      contaNome: conta.nome,
+      dataFatura: t.data_fatura,
+      transacoes: [],
+      total: 0,
+      todasPagas: true,
+    }
+    grupo.transacoes.push(t)
+    grupo.total += t.tipo === 'despesa' ? t.valor : -t.valor
+    if (t.status_pagamento !== 'pago') grupo.todasPagas = false
+    faturasMap.set(chave, grupo)
+  }
+  const faturas = Array.from(faturasMap.values()).sort((a, b) => b.dataFatura.localeCompare(a.dataFatura))
+
   const transacoesFiltradas = transacoes.filter((t) => {
     if (tipo && t.tipo !== tipo) return false
     if (categoria && t.categoria !== categoria) return false
@@ -226,6 +266,82 @@ export default async function FinanceiroPage({
         <h2 className={styles.cardTitle}>Gastos por categoria ({nomeMes(mesSelecionado)})</h2>
         <GastosPorCategoriaChart dados={gastosPorCategoria} />
       </section>
+
+      {temCartaoCredito && (
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Gastos do mês no cartão ({nomeMes(mesSelecionado)})</h2>
+          <p className={styles.faturaAjuda}>
+            Por competência — quanto você gastou no cartão neste mês, independente de quando a fatura vence.
+          </p>
+          <div className={styles.statsGrid}>
+            <div className={`${styles.statTile} ${styles.statTileNegativo}`}>
+              <div className={styles.statTileValue}>{formatMoeda(totalGastosCartaoDoMes)}</div>
+              <div className={styles.statTileLabel}>Total gasto no cartão</div>
+            </div>
+          </div>
+          {gastosCartaoDoMes.length > 0 && (
+            <ul className={styles.list} style={{ marginTop: '1rem' }}>
+              {gastosCartaoDoMes.map((t) => (
+                <li key={t.id} className={styles.item}>
+                  <div className={styles.itemTop}>
+                    <span className={styles.itemIcone}>{iconeCategoria(t.categoria)}</span>
+                    <span className={t.tipo === 'receita' ? styles.tipoReceita : styles.tipoDespesa}>
+                      {t.tipo === 'receita' ? '+ ' : '− '}
+                      {formatMoeda(t.valor)}
+                    </span>
+                  </div>
+                  <div className={styles.itemTitulo}>{t.categoria}</div>
+                  <div className={styles.itemMeta}>
+                    {formatDataBR(t.data)} · {contaPorId.get(t.conta_id)?.nome}
+                    {t.data_fatura ? ` · fatura ${formatDataBR(t.data_fatura)}` : ''}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {temCartaoCredito && faturas.length > 0 && (
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Faturas</h2>
+          <p className={styles.faturaAjuda}>
+            Por vencimento — cada fatura agrupa as compras que vencem juntas, pra marcar como paga de uma vez.
+          </p>
+          <ul className={styles.list}>
+            {faturas.map((f) => (
+              <li key={`${f.contaId}|${f.dataFatura}`} className={styles.item}>
+                <div className={styles.itemInfo}>
+                  <div>
+                    <div className={styles.itemNome}>
+                      {f.contaNome} · fatura de {nomeMes(f.dataFatura.slice(0, 7))}
+                    </div>
+                    <div className={styles.itemMeta}>Vence em {formatDataBR(f.dataFatura)}</div>
+                  </div>
+                  <span className={f.todasPagas ? styles.statusBadgePago : styles.statusBadgePendente}>
+                    {f.todasPagas ? 'Paga' : 'Pendente'}
+                  </span>
+                </div>
+                <div className={styles.itemTitulo}>{formatMoeda(f.total)}</div>
+                <ul className={styles.faturaItens}>
+                  {f.transacoes.map((t) => (
+                    <li key={t.id} className={styles.faturaItem}>
+                      <span>
+                        {iconeCategoria(t.categoria)} {t.categoria}
+                        {t.total_parcelas > 1 ? ` (${t.parcela_atual}/${t.total_parcelas})` : ''}
+                      </span>
+                      <span>{formatMoeda(t.valor)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className={styles.itemActions}>
+                  <FaturaToggleButton contaId={f.contaId} dataFatura={f.dataFatura} todasPagas={f.todasPagas} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>{editingConta ? 'Editar conta' : 'Nova conta'}</h2>
@@ -318,6 +434,7 @@ export default async function FinanceiroPage({
                       <div className={styles.itemMeta}>
                         {formatDataBR(t.data)}
                         {conta ? ` · ${conta.nome}` : ''}
+                        {t.data_fatura ? ` · fatura ${formatDataBR(t.data_fatura)}` : ''}
                       </div>
                       {t.descricao && <p className={styles.itemComentario}>{t.descricao}</p>}
                       <div className={styles.itemActions}>

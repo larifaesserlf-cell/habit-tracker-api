@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { textoOuNull, numeroOuNull, intOuNull } from '@/lib/formHelpers'
+import { calcularDataFatura } from '@/app/financeiro/constants'
 import type { ContaTipo, StatusPagamento, TransacaoTipo, TipoAtivo } from '@/lib/supabase/types'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
@@ -23,7 +24,7 @@ export type InvestimentoFormState =
   | { status: 'error'; message: string }
   | { status: 'success' }
 
-const CONTA_TIPOS: ContaTipo[] = ['corrente', 'poupanca', 'carteira', 'corretora']
+const CONTA_TIPOS: ContaTipo[] = ['corrente', 'poupanca', 'carteira', 'corretora', 'cartao_credito']
 const TRANSACAO_TIPOS: TransacaoTipo[] = ['receita', 'despesa']
 const TIPOS_ATIVO: TipoAtivo[] = [
   'tesouro_ipca',
@@ -35,14 +36,20 @@ const TIPOS_ATIVO: TipoAtivo[] = [
   'outro',
 ]
 
-async function contaPertenceAoUsuario(supabase: SupabaseServerClient, contaId: string, userId: string) {
+type ContaResumo = { id: string; tipo: ContaTipo; dia_vencimento_fatura: number | null }
+
+async function buscarContaDoUsuario(
+  supabase: SupabaseServerClient,
+  contaId: string,
+  userId: string
+): Promise<ContaResumo | null> {
   const { data } = await supabase
     .from('contas_financeiras')
-    .select('id')
+    .select('id, tipo, dia_vencimento_fatura')
     .eq('id', contaId)
     .eq('user_id', userId)
     .maybeSingle()
-  return Boolean(data)
+  return data as ContaResumo | null
 }
 
 // ── Contas ──────────────────────────────────────────────────────────────
@@ -66,6 +73,17 @@ export async function saveConta(
     return { status: 'error', message: 'Selecione um tipo de conta válido.' }
   }
 
+  // Dia de vencimento da fatura só existe pra contas cartao_credito — em
+  // qualquer outro tipo o valor é descartado (ainda que venha no formData),
+  // pra nunca ficar um dia "órfão" configurado numa conta que não é cartão.
+  let diaVencimentoFatura: number | null = null
+  if (tipo === 'cartao_credito') {
+    diaVencimentoFatura = intOuNull(formData, 'dia_vencimento_fatura')
+    if (diaVencimentoFatura === null || diaVencimentoFatura < 1 || diaVencimentoFatura > 31) {
+      return { status: 'error', message: 'Informe o dia de vencimento da fatura (entre 1 e 31).' }
+    }
+  }
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -81,10 +99,18 @@ export async function saveConta(
   // vier no formData de uma edição (não deveria, o form nem renderiza mais
   // esse input em modo editar), é ignorado aqui também, em profundidade.
   const { error } = id
-    ? await supabase.from('contas_financeiras').update({ nome, tipo }).eq('id', id).eq('user_id', user.id)
-    : await supabase
+    ? await supabase
         .from('contas_financeiras')
-        .insert({ nome, tipo, saldo_atual: numeroOuNull(formData, 'saldo_atual') ?? 0, user_id: user.id })
+        .update({ nome, tipo, dia_vencimento_fatura: diaVencimentoFatura })
+        .eq('id', id)
+        .eq('user_id', user.id)
+    : await supabase.from('contas_financeiras').insert({
+        nome,
+        tipo,
+        dia_vencimento_fatura: diaVencimentoFatura,
+        saldo_atual: numeroOuNull(formData, 'saldo_atual') ?? 0,
+        user_id: user.id,
+      })
 
   if (error) {
     return { status: 'error', message: `Erro ao salvar conta: ${error.message}` }
@@ -210,8 +236,20 @@ export async function saveTransacao(
   if (!user) {
     return { status: 'error', message: 'Sessão expirada. Faça login novamente.' }
   }
-  if (!(await contaPertenceAoUsuario(supabase, contaId, user.id))) {
+  const conta = await buscarContaDoUsuario(supabase, contaId, user.id)
+  if (!conta) {
     return { status: 'error', message: 'Conta inválida.' }
+  }
+
+  // Cartão de crédito: a compra fica registrada na data real (competência),
+  // mas o status pago/pendente segue o vencimento da FATURA, não a data da
+  // compra em si — a compra já aconteceu, o que falta é pagar a fatura.
+  const usaFatura = conta.tipo === 'cartao_credito' && conta.dia_vencimento_fatura != null
+  function dataFaturaPara(dataTransacao: string): string | null {
+    return usaFatura ? calcularDataFatura(dataTransacao, conta!.dia_vencimento_fatura!) : null
+  }
+  function statusPara(dataTransacao: string): StatusPagamento {
+    return statusPagamentoAutomatico(usaFatura ? dataFaturaPara(dataTransacao)! : dataTransacao)
   }
 
   const subcategoria = textoOuNull(formData, 'subcategoria')
@@ -222,7 +260,18 @@ export async function saveTransacao(
     // Edição: só atualiza a própria linha, sem tocar em parcelamento nem
     // em status_pagamento — status é ajustado manualmente na listagem
     // (marcar como pago/pendente), e editar outro campo não deve resetá-lo.
-    const payload = { conta_id: contaId, tipo, categoria, subcategoria, valor, data, descricao: descricaoBase, fixo }
+    // data_fatura é recalculada porque é só um derivado de data + conta.
+    const payload = {
+      conta_id: contaId,
+      tipo,
+      categoria,
+      subcategoria,
+      valor,
+      data,
+      data_fatura: dataFaturaPara(data),
+      descricao: descricaoBase,
+      fixo,
+    }
     const { error } = await supabase.from('transacoes').update(payload).eq('id', id).eq('user_id', user.id)
     if (error) {
       return { status: 'error', message: `Erro ao salvar transação: ${error.message}` }
@@ -239,9 +288,10 @@ export async function saveTransacao(
       subcategoria,
       valor,
       data,
+      data_fatura: dataFaturaPara(data),
       descricao: descricaoBase,
       fixo,
-      status_pagamento: statusPagamentoAutomatico(data),
+      status_pagamento: statusPara(data),
     }
     const { error } = await supabase.from('transacoes').insert({ ...payload, user_id: user.id })
     if (error) {
@@ -267,6 +317,7 @@ export async function saveTransacao(
       subcategoria,
       valor: valorParcela,
       data: dataParcela,
+      data_fatura: dataFaturaPara(dataParcela),
       descricao: descricaoBase
         ? `${descricaoBase} (${parcelaInicial + i}/${totalParcelas})`
         : `(${parcelaInicial + i}/${totalParcelas})`,
@@ -274,7 +325,7 @@ export async function saveTransacao(
       total_parcelas: totalParcelas,
       parcela_atual: parcelaInicial + i,
       compra_id: compraId,
-      status_pagamento: statusPagamentoAutomatico(dataParcela),
+      status_pagamento: statusPara(dataParcela),
       user_id: user.id,
     }
   })
@@ -304,6 +355,27 @@ export async function toggleStatusPagamento(id: string, novoStatus: StatusPagame
     .update({ status_pagamento: novoStatus })
     .eq('id', id)
     .eq('user_id', user.id)
+  revalidatePath('/financeiro')
+}
+
+/**
+ * Marca de uma vez todas as transações de uma fatura (mesma conta + mesma
+ * data_fatura) como pagas ou pendentes — evita ter que marcar item por item
+ * na visão de Faturas.
+ */
+export async function marcarFaturaPaga(contaId: string, dataFatura: string, novoStatus: StatusPagamento) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase
+    .from('transacoes')
+    .update({ status_pagamento: novoStatus })
+    .eq('user_id', user.id)
+    .eq('conta_id', contaId)
+    .eq('data_fatura', dataFatura)
   revalidatePath('/financeiro')
 }
 
