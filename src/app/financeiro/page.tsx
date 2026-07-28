@@ -7,7 +7,8 @@ import { DeleteContaButton } from './DeleteContaButton'
 import { TransacaoForm } from './TransacaoForm'
 import { DeleteTransacaoButton } from './DeleteTransacaoButton'
 import { FiltrosBar } from './FiltrosBar'
-import { GastosPorCategoriaChart } from './GastosPorCategoriaChart'
+import { CategoriaChartTabs } from './CategoriaChartTabs'
+import { CollapsibleSection } from './CollapsibleSection'
 import { StatusPagamentoToggle } from './StatusPagamentoToggle'
 import { FaturaToggleButton } from './FaturaToggleButton'
 import { CONTA_TIPO_LABEL, formatMoeda, formatDataBR, iconeCategoria, calcularSaldoConta } from './constants'
@@ -230,6 +231,43 @@ export default async function FinanceiroPage({
       </div>
 
       <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>Contas</h2>
+        </div>
+
+        {contas.length > 0 && (
+          <ul className={styles.contaList}>
+            {contas.map((c) => (
+              <li key={c.id} className={styles.item}>
+                <div className={styles.itemInfo}>
+                  <div>
+                    <div className={styles.itemNome}>{c.nome}</div>
+                    <div className={styles.itemMeta}>
+                      {CONTA_TIPO_LABEL[c.tipo]} ·{' '}
+                      {formatMoeda(calcularSaldoConta(c, transacoesPorConta.get(c.id) ?? []))}
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.itemActions}>
+                  <Link href={`/financeiro?editConta=${c.id}`} className={styles.editLink}>
+                    Editar
+                  </Link>
+                  <DeleteContaButton id={c.id} nome={c.nome} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div style={{ marginTop: contas.length > 0 ? '1rem' : 0 }}>
+          <CollapsibleSection forceOpen={Boolean(editingConta)} openLabel="+ Adicionar conta">
+            <h3 className={styles.cardTitle}>{editingConta ? 'Editar conta' : 'Nova conta'}</h3>
+            <ContaForm key={editingConta?.id ?? 'new'} conta={editingConta} />
+          </CollapsibleSection>
+        </div>
+      </section>
+
+      <section className={styles.card}>
         <div className={styles.mesNav}>
           <Link href={hrefMesAnterior} className={styles.mesNavArrow} aria-label="Mês anterior">
             ←
@@ -269,13 +307,8 @@ export default async function FinanceiroPage({
       </section>
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>Gastos por categoria ({nomeMes(mesSelecionado)})</h2>
-        <GastosPorCategoriaChart dados={gastosPorCategoria} />
-      </section>
-
-      <section className={styles.card}>
-        <h2 className={styles.cardTitle}>Receitas por categoria ({nomeMes(mesSelecionado)})</h2>
-        <GastosPorCategoriaChart dados={receitasPorCategoria} mensagemVazia="Nenhuma receita registrada este mês." />
+        <h2 className={styles.cardTitle}>Por categoria ({nomeMes(mesSelecionado)})</h2>
+        <CategoriaChartTabs gastos={gastosPorCategoria} receitas={receitasPorCategoria} />
       </section>
 
       {temCartaoCredito && (
@@ -355,45 +388,18 @@ export default async function FinanceiroPage({
       )}
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>{editingConta ? 'Editar conta' : 'Nova conta'}</h2>
-        <ContaForm key={editingConta?.id ?? 'new'} conta={editingConta} />
-
-        {contas.length > 0 && (
-          <ul className={styles.contaList}>
-            {contas.map((c) => (
-              <li key={c.id} className={styles.item}>
-                <div className={styles.itemInfo}>
-                  <div>
-                    <div className={styles.itemNome}>{c.nome}</div>
-                    <div className={styles.itemMeta}>
-                      {CONTA_TIPO_LABEL[c.tipo]} ·{' '}
-                      {formatMoeda(calcularSaldoConta(c, transacoesPorConta.get(c.id) ?? []))}
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.itemActions}>
-                  <Link href={`/financeiro?editConta=${c.id}`} className={styles.editLink}>
-                    Editar
-                  </Link>
-                  <DeleteContaButton id={c.id} nome={c.nome} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className={styles.card}>
-        <h2 className={styles.cardTitle}>{editingTransacao ? 'Editar transação' : 'Nova transação'}</h2>
         {contas.length === 0 ? (
           <p className={styles.empty}>Crie uma conta acima antes de registrar uma transação.</p>
         ) : (
-          <TransacaoForm
-            key={editingTransacao?.id ?? 'new'}
-            transacao={editingTransacao}
-            contas={contas}
-            categoriasExistentes={categoriasExistentes}
-          />
+          <CollapsibleSection forceOpen={Boolean(editingTransacao)} openLabel="+ Nova transação">
+            <h2 className={styles.cardTitle}>{editingTransacao ? 'Editar transação' : 'Nova transação'}</h2>
+            <TransacaoForm
+              key={editingTransacao?.id ?? 'new'}
+              transacao={editingTransacao}
+              contas={contas}
+              categoriasExistentes={categoriasExistentes}
+            />
+          </CollapsibleSection>
         )}
       </section>
 
