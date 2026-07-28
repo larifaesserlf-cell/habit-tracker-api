@@ -19,6 +19,11 @@ export type TransacaoFormState =
   | { status: 'error'; message: string }
   | { status: 'success' }
 
+export type EditarCompraFormState =
+  | { status: 'idle' }
+  | { status: 'error'; message: string }
+  | { status: 'success' }
+
 export type InvestimentoFormState =
   | { status: 'idle' }
   | { status: 'error'; message: string }
@@ -177,6 +182,31 @@ function dividirValorEmParcelas(valorTotal: number, totalParcelas: number): numb
 }
 
 /**
+ * Cartão de crédito: a compra fica registrada na data real (competência),
+ * mas o status pago/pendente segue o vencimento da FATURA, não a data da
+ * compra em si — a compra já aconteceu, o que falta é pagar a fatura.
+ * Reaproveitado tanto na criação/edição avulsa quanto na edição de compra
+ * parcelada inteira.
+ */
+function criarCalculadoraFatura(conta: ContaResumo) {
+  const usaFatura = conta.tipo === 'cartao_credito' && conta.dia_vencimento_fatura != null
+  function dataFaturaPara(dataTransacao: string): string | null {
+    return usaFatura ? calcularDataFatura(dataTransacao, conta.dia_vencimento_fatura!) : null
+  }
+  function statusPara(dataTransacao: string): StatusPagamento {
+    return statusPagamentoAutomatico(usaFatura ? dataFaturaPara(dataTransacao)! : dataTransacao)
+  }
+  return { dataFaturaPara, statusPara }
+}
+
+/** Junta a descrição-base (livre) com o sufixo "(i/N)" de cada parcela —
+ *  mesmo padrão usado desde a criação, pra manter a listagem consistente
+ *  entre parcelas criadas de uma vez e parcelas recalculadas numa edição. */
+function descricaoComParcela(base: string | null, parcelaAtual: number, totalParcelas: number): string {
+  return base ? `${base} (${parcelaAtual}/${totalParcelas})` : `(${parcelaAtual}/${totalParcelas})`
+}
+
+/**
  * Server Action de criação/edição de transação.
  * Se `formData` tiver um campo `id` preenchido, atualiza; senão, cria.
  * Em criação, se `tipo` for despesa e `total_parcelas` > 1, o valor
@@ -241,16 +271,7 @@ export async function saveTransacao(
     return { status: 'error', message: 'Conta inválida.' }
   }
 
-  // Cartão de crédito: a compra fica registrada na data real (competência),
-  // mas o status pago/pendente segue o vencimento da FATURA, não a data da
-  // compra em si — a compra já aconteceu, o que falta é pagar a fatura.
-  const usaFatura = conta.tipo === 'cartao_credito' && conta.dia_vencimento_fatura != null
-  function dataFaturaPara(dataTransacao: string): string | null {
-    return usaFatura ? calcularDataFatura(dataTransacao, conta!.dia_vencimento_fatura!) : null
-  }
-  function statusPara(dataTransacao: string): StatusPagamento {
-    return statusPagamentoAutomatico(usaFatura ? dataFaturaPara(dataTransacao)! : dataTransacao)
-  }
+  const { dataFaturaPara, statusPara } = criarCalculadoraFatura(conta)
 
   const subcategoria = textoOuNull(formData, 'subcategoria')
   const descricaoBase = textoOuNull(formData, 'descricao')
@@ -318,9 +339,7 @@ export async function saveTransacao(
       valor: valorParcela,
       data: dataParcela,
       data_fatura: dataFaturaPara(dataParcela),
-      descricao: descricaoBase
-        ? `${descricaoBase} (${parcelaInicial + i}/${totalParcelas})`
-        : `(${parcelaInicial + i}/${totalParcelas})`,
+      descricao: descricaoComParcela(descricaoBase, parcelaInicial + i, totalParcelas),
       fixo,
       total_parcelas: totalParcelas,
       parcela_atual: parcelaInicial + i,
@@ -333,6 +352,205 @@ export async function saveTransacao(
   const { error } = await supabase.from('transacoes').insert(linhas)
   if (error) {
     return { status: 'error', message: `Erro ao salvar transação parcelada: ${error.message}` }
+  }
+
+  revalidatePath('/financeiro')
+  return { status: 'success' }
+}
+
+/**
+ * Server Action de edição de uma compra parcelada INTEIRA (todas as linhas
+ * que compartilham o mesmo compra_id) — usada na edição rápida a partir da
+ * listagem. Diferente de `saveTransacao`, que edita só uma linha isolada.
+ *
+ * Parcelas já pagas nunca têm valor/data alterados (só recebem os novos
+ * conta/categoria/descrição/total_parcelas, que são atributos da compra
+ * como um todo). Parcelas pendentes são recalculadas: o valor restante
+ * (novo total menos o que já foi pago) é redividido entre as parcelas
+ * pendentes que sobrarem depois da edição. Se o novo número de parcelas for
+ * menor que a posição da última parcela já paga, a edição é bloqueada —
+ * senão a numeração "X/N" ficaria inconsistente com parcelas já quitadas.
+ */
+export async function editarCompraParcelada(
+  _prevState: EditarCompraFormState,
+  formData: FormData
+): Promise<EditarCompraFormState> {
+  const compraId = (formData.get('compra_id') as string | null) || ''
+  const contaId = (formData.get('conta_id') as string | null) || ''
+  const categoria = (formData.get('categoria') as string | null)?.trim() ?? ''
+  const descricaoBase = textoOuNull(formData, 'descricao')
+  const valorTotal = numeroOuNull(formData, 'valor_total')
+  const novoTotalParcelas = intOuNull(formData, 'total_parcelas')
+
+  if (!compraId) {
+    return { status: 'error', message: 'Compra inválida.' }
+  }
+  if (!contaId) {
+    return { status: 'error', message: 'Selecione uma conta.' }
+  }
+  if (categoria.length === 0) {
+    return { status: 'error', message: 'Informe a categoria.' }
+  }
+  if (valorTotal === null || valorTotal <= 0) {
+    return { status: 'error', message: 'Informe um valor total maior que zero.' }
+  }
+  if (novoTotalParcelas === null || novoTotalParcelas < 1) {
+    return { status: 'error', message: 'Informe um número de parcelas válido.' }
+  }
+  if (novoTotalParcelas > MAX_PARCELAS) {
+    return { status: 'error', message: `Número de parcelas muito alto (máximo ${MAX_PARCELAS}).` }
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { status: 'error', message: 'Sessão expirada. Faça login novamente.' }
+  }
+
+  const conta = await buscarContaDoUsuario(supabase, contaId, user.id)
+  if (!conta) {
+    return { status: 'error', message: 'Conta inválida.' }
+  }
+
+  const { data: linhasData, error: erroBusca } = await supabase
+    .from('transacoes')
+    .select('*')
+    .eq('compra_id', compraId)
+    .eq('user_id', user.id)
+    .order('parcela_atual', { ascending: true })
+  if (erroBusca || !linhasData || linhasData.length === 0) {
+    return { status: 'error', message: 'Compra não encontrada.' }
+  }
+
+  type LinhaCompra = {
+    id: string
+    parcela_atual: number
+    status_pagamento: StatusPagamento | null
+    valor: number
+    data: string
+    tipo: TransacaoTipo
+    subcategoria: string | null
+    fixo: boolean
+  }
+  const linhas = linhasData as LinhaCompra[]
+
+  const pagas = linhas.filter((l) => l.status_pagamento === 'pago')
+  const pendentes = linhas.filter((l) => l.status_pagamento !== 'pago')
+  const maiorParcelaPaga = pagas.length > 0 ? Math.max(...pagas.map((l) => l.parcela_atual)) : 0
+
+  if (novoTotalParcelas < maiorParcelaPaga) {
+    return {
+      status: 'error',
+      message: `Não é possível reduzir pra menos de ${maiorParcelaPaga} parcelas: a parcela ${maiorParcelaPaga} já está paga.`,
+    }
+  }
+
+  const sumPago = pagas.reduce((soma, l) => soma + l.valor, 0)
+  const countPendentesNovo = novoTotalParcelas - maiorParcelaPaga
+  const valorRestante = valorTotal - sumPago
+
+  if (countPendentesNovo > 0 && valorRestante < 0) {
+    return {
+      status: 'error',
+      message: `O valor total informado é menor do que o já pago (${sumPago.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+      })}). Informe um valor maior.`,
+    }
+  }
+
+  const valoresPendentes =
+    countPendentesNovo > 0 ? dividirValorEmParcelas(Math.max(valorRestante, 0), countPendentesNovo) : []
+
+  const { dataFaturaPara, statusPara } = criarCalculadoraFatura(conta)
+
+  const pendentesOrdenadas = [...pendentes].sort((a, b) => a.parcela_atual - b.parcela_atual)
+  const pendentesManter = pendentesOrdenadas.filter((l) => l.parcela_atual <= novoTotalParcelas)
+  const pendentesExcluir = pendentesOrdenadas.filter((l) => l.parcela_atual > novoTotalParcelas)
+
+  // Atributos da compra (conta/categoria/descrição/total_parcelas) valem
+  // pra toda linha, inclusive as já pagas — só valor e data delas ficam
+  // intocados. data_fatura é recalculada porque é só um derivado de
+  // data + conta, não uma decisão manual da usuária.
+  for (const l of pagas) {
+    const { error } = await supabase
+      .from('transacoes')
+      .update({
+        conta_id: contaId,
+        categoria,
+        descricao: descricaoComParcela(descricaoBase, l.parcela_atual, novoTotalParcelas),
+        total_parcelas: novoTotalParcelas,
+        data_fatura: dataFaturaPara(l.data),
+      })
+      .eq('id', l.id)
+      .eq('user_id', user.id)
+    if (error) {
+      return { status: 'error', message: `Erro ao salvar compra: ${error.message}` }
+    }
+  }
+
+  for (let i = 0; i < pendentesManter.length; i++) {
+    const l = pendentesManter[i]
+    const { error } = await supabase
+      .from('transacoes')
+      .update({
+        conta_id: contaId,
+        categoria,
+        descricao: descricaoComParcela(descricaoBase, l.parcela_atual, novoTotalParcelas),
+        total_parcelas: novoTotalParcelas,
+        valor: valoresPendentes[i],
+        data_fatura: dataFaturaPara(l.data),
+      })
+      .eq('id', l.id)
+      .eq('user_id', user.id)
+    if (error) {
+      return { status: 'error', message: `Erro ao salvar compra: ${error.message}` }
+    }
+  }
+
+  if (pendentesExcluir.length > 0) {
+    const { error } = await supabase
+      .from('transacoes')
+      .delete()
+      .eq('user_id', user.id)
+      .in(
+        'id',
+        pendentesExcluir.map((l) => l.id)
+      )
+    if (error) {
+      return { status: 'error', message: `Erro ao salvar compra: ${error.message}` }
+    }
+  }
+
+  const faltamCriar = countPendentesNovo - pendentesManter.length
+  if (faltamCriar > 0) {
+    const ultimaLinha = linhas[linhas.length - 1]
+    const linhasNovas = Array.from({ length: faltamCriar }, (_, i) => {
+      const dataParcela = somarMeses(ultimaLinha.data, i + 1)
+      const parcelaAtual = ultimaLinha.parcela_atual + i + 1
+      return {
+        conta_id: contaId,
+        tipo: ultimaLinha.tipo,
+        categoria,
+        subcategoria: ultimaLinha.subcategoria,
+        valor: valoresPendentes[pendentesManter.length + i],
+        data: dataParcela,
+        data_fatura: dataFaturaPara(dataParcela),
+        descricao: descricaoComParcela(descricaoBase, parcelaAtual, novoTotalParcelas),
+        fixo: ultimaLinha.fixo,
+        total_parcelas: novoTotalParcelas,
+        parcela_atual: parcelaAtual,
+        compra_id: compraId,
+        status_pagamento: statusPara(dataParcela),
+        user_id: user.id,
+      }
+    })
+    const { error } = await supabase.from('transacoes').insert(linhasNovas)
+    if (error) {
+      return { status: 'error', message: `Erro ao salvar compra: ${error.message}` }
+    }
   }
 
   revalidatePath('/financeiro')

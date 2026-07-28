@@ -541,6 +541,61 @@
   color: #c4b5fd;
 }
 
+/* .editLink também é usado em <button> (edição rápida em modal) — reseta
+   a aparência nativa de botão pra ficar igual ao link. */
+button.editLink {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* ── Modal de edição rápida ── */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 12, 41, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+
+.modalBox {
+  width: 100%;
+  max-width: 32rem;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #24243e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modalCloseBtn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.modalCloseBtn:hover {
+  color: #ffffff;
+}
+
 .deleteBtn {
   background: none;
   border: none;

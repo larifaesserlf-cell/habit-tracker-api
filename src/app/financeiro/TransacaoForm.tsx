@@ -20,10 +20,14 @@ export function TransacaoForm({
   transacao,
   contas,
   categoriasExistentes,
+  onSuccess,
 }: {
   transacao: Transacao | null
   contas: ContaFinanceira[]
   categoriasExistentes: string[]
+  /** Chamado além da navegação padrão — usado pelo modal de edição rápida
+   *  na listagem pra se fechar sozinho quando o salvamento dá certo. */
+  onSuccess?: () => void
 }) {
   const [state, formAction, pending] = useActionState(saveTransacao, initialState)
   const router = useRouter()
@@ -80,8 +84,9 @@ export function TransacaoForm({
     if (state.status === 'success') {
       router.push('/financeiro')
       router.refresh()
+      onSuccess?.()
     }
-  }, [state.status, router])
+  }, [state.status, router, onSuccess])
 
   return (
     <form action={formAction} className={styles.form}>

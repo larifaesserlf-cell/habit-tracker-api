@@ -6,6 +6,7 @@ import { ContaForm } from './ContaForm'
 import { DeleteContaButton } from './DeleteContaButton'
 import { TransacaoForm } from './TransacaoForm'
 import { DeleteTransacaoButton } from './DeleteTransacaoButton'
+import { EditarTransacaoButton } from './EditarTransacaoButton'
 import { FiltrosBar } from './FiltrosBar'
 import { CategoriaChartTabs } from './CategoriaChartTabs'
 import { CollapsibleSection } from './CollapsibleSection'
@@ -72,13 +73,12 @@ export default async function FinanceiroPage({
 }: {
   searchParams: Promise<{
     editConta?: string
-    editTransacao?: string
     tipo?: string
     categoria?: string
     mes?: string
   }>
 }) {
-  const { editConta, editTransacao, tipo, categoria, mes } = await searchParams
+  const { editConta, tipo, categoria, mes } = await searchParams
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -210,8 +210,16 @@ export default async function FinanceiroPage({
     transacoesPorMes.set(mesDaTransacao, lista)
   }
 
+  // Todas as parcelas de cada compra (mesmo compra_id) — usado pra abrir a
+  // edição rápida da compra inteira quando a transação clicada é parcelada.
+  const transacoesPorCompra = new Map<string, Transacao[]>()
+  for (const t of transacoes) {
+    const lista = transacoesPorCompra.get(t.compra_id) ?? []
+    lista.push(t)
+    transacoesPorCompra.set(t.compra_id, lista)
+  }
+
   const editingConta = editConta ? contas.find((c) => c.id === editConta) ?? null : null
-  const editingTransacao = editTransacao ? transacoes.find((t) => t.id === editTransacao) ?? null : null
 
   const filtrosAtuais = { tipo, categoria }
   const hrefMesAnterior = hrefComMes(filtrosAtuais, deslocarMes(mesSelecionado, -1))
@@ -391,14 +399,9 @@ export default async function FinanceiroPage({
         {contas.length === 0 ? (
           <p className={styles.empty}>Crie uma conta acima antes de registrar uma transação.</p>
         ) : (
-          <CollapsibleSection forceOpen={Boolean(editingTransacao)} openLabel="+ Nova transação">
-            <h2 className={styles.cardTitle}>{editingTransacao ? 'Editar transação' : 'Nova transação'}</h2>
-            <TransacaoForm
-              key={editingTransacao?.id ?? 'new'}
-              transacao={editingTransacao}
-              contas={contas}
-              categoriasExistentes={categoriasExistentes}
-            />
+          <CollapsibleSection forceOpen={false} openLabel="+ Nova transação">
+            <h2 className={styles.cardTitle}>Nova transação</h2>
+            <TransacaoForm transacao={null} contas={contas} categoriasExistentes={categoriasExistentes} />
           </CollapsibleSection>
         )}
       </section>
@@ -455,9 +458,12 @@ export default async function FinanceiroPage({
                       </div>
                       {t.descricao && <p className={styles.itemComentario}>{t.descricao}</p>}
                       <div className={styles.itemActions}>
-                        <Link href={`/financeiro?editTransacao=${t.id}`} className={styles.editLink}>
-                          Editar
-                        </Link>
+                        <EditarTransacaoButton
+                          transacao={t}
+                          linhasCompra={transacoesPorCompra.get(t.compra_id) ?? [t]}
+                          contas={contas}
+                          categoriasExistentes={categoriasExistentes}
+                        />
                         <DeleteTransacaoButton transacao={t} />
                       </div>
                     </li>
