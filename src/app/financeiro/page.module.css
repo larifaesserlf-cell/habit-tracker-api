@@ -242,6 +242,20 @@
   color: #f87171;
 }
 
+/* ── Agrupamento por mês na listagem de transações ── */
+.mesGrupo {
+  margin-bottom: 1.5rem;
+}
+
+.mesGrupoTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.6rem;
+}
+
 /* ── Listagem (contas e transações) ── */
 .contaList {
   list-style: none;
@@ -266,6 +280,17 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
   padding: 0.9rem 1.1rem;
+}
+
+/* Pendente = ainda não aconteceu de fato — visualmente mais discreta que
+   uma transação já paga, sem escondê-la. */
+.itemPendente {
+  opacity: 0.6;
+}
+
+.itemIcone {
+  font-size: 1rem;
+  margin-right: 0.15rem;
 }
 
 .itemInfo {
@@ -317,6 +342,50 @@
   border: 1px solid rgba(124, 106, 247, 0.4);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
+}
+
+.statusBadgePago,
+.statusBadgePendente {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.statusBadgePago {
+  color: #86efac;
+  background: rgba(74, 222, 128, 0.12);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.statusBadgePendente {
+  color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.statusBadgePago:hover,
+.statusBadgePendente:hover {
+  filter: brightness(1.15);
+}
+
+.toggleMoreBtn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #a78bfa;
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.toggleMoreBtn:hover {
+  color: #c4b5fd;
 }
 
 .parcelasAjuda {

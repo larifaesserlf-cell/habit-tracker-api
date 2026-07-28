@@ -159,6 +159,7 @@ export type ContaFinanceira = {
 }
 
 export type TransacaoTipo = 'receita' | 'despesa'
+export type StatusPagamento = 'pago' | 'pendente'
 
 export type Transacao = {
   id: string
@@ -174,6 +175,7 @@ export type Transacao = {
   total_parcelas: number
   parcela_atual: number
   compra_id: string
+  status_pagamento: StatusPagamento | null
   created_at: string
 }
 

@@ -1,4 +1,4 @@
-import type { ContaTipo, TransacaoTipo, TipoAtivo } from '@/lib/supabase/types'
+import type { ContaFinanceira, ContaTipo, StatusPagamento, Transacao, TransacaoTipo, TipoAtivo } from '@/lib/supabase/types'
 
 export const CONTA_TIPOS: ContaTipo[] = ['corrente', 'poupanca', 'carteira', 'corretora']
 
@@ -42,4 +42,67 @@ export function formatMoeda(valor: number): string {
 
 export function formatDataBR(data: string): string {
   return data.split('-').reverse().join('/')
+}
+
+// ── Categorias sugeridas (autocomplete livre — a pessoa pode digitar
+// qualquer outra coisa) e um ícone simples por categoria, no estilo Nubank. ──
+
+export const CATEGORIAS_SUGERIDAS = [
+  'Alimentação',
+  'Mercado',
+  'Transporte',
+  'Moradia',
+  'Contas Fixas',
+  'Saúde',
+  'Lazer',
+  'Educação',
+  'Compras',
+  'Assinaturas',
+  'Serviços',
+  'Salário',
+  'Investimentos',
+  'Outros',
+]
+
+const CATEGORIA_ICONE: Record<string, string> = {
+  'alimentação': '🍔',
+  'mercado': '🛒',
+  'transporte': '🚗',
+  'moradia': '🏠',
+  'contas fixas': '🧾',
+  'saúde': '🩺',
+  'lazer': '🎉',
+  'educação': '📚',
+  'compras': '🛍️',
+  'assinaturas': '📱',
+  'serviços': '🛠️',
+  'salário': '💼',
+  'investimentos': '📈',
+  'ajuste de saldo': '⚖️',
+  'outros': '🏷️',
+}
+
+const ICONE_PADRAO = '💳'
+
+/** Ícone por categoria — combina com qualquer capitalização; categorias
+ *  fora da lista sugerida (texto livre) caem no ícone padrão. */
+export function iconeCategoria(categoria: string): string {
+  return CATEGORIA_ICONE[categoria.trim().toLowerCase()] ?? ICONE_PADRAO
+}
+
+export const STATUS_PAGAMENTO_LABEL: Record<StatusPagamento, string> = {
+  pago: 'Pago',
+  pendente: 'Pendente',
+}
+
+/**
+ * Saldo de uma conta = saldo inicial (campo `saldo_atual`, só preenchido na
+ * criação) + receitas já pagas - despesas já pagas daquela conta.
+ * Transações pendentes não entram até o status virar "pago".
+ */
+export function calcularSaldoConta(conta: ContaFinanceira, transacoesDaConta: Transacao[]): number {
+  return transacoesDaConta.reduce((saldo, t) => {
+    if (t.status_pagamento !== 'pago') return saldo
+    return t.tipo === 'receita' ? saldo + t.valor : saldo - t.valor
+  }, conta.saldo_atual)
 }

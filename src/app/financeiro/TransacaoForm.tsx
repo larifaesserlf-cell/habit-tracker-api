@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveTransacao, type TransacaoFormState } from '@/actions/financeiro'
 import type { ContaFinanceira, Transacao, TransacaoTipo } from '@/lib/supabase/types'
-import { TRANSACAO_TIPOS, TRANSACAO_TIPO_LABEL } from './constants'
+import { TRANSACAO_TIPOS, TRANSACAO_TIPO_LABEL, CATEGORIAS_SUGERIDAS } from './constants'
 import styles from './page.module.css'
 
 const initialState: TransacaoFormState = { status: 'idle' }
@@ -38,11 +38,15 @@ export function TransacaoForm({
   const [tipoSelecionado, setTipoSelecionado] = useState<TransacaoTipo>(transacao?.tipo ?? 'despesa')
   const [valor, setValor] = useState(transacao?.valor != null ? String(transacao.valor) : '')
   const [totalParcelas, setTotalParcelas] = useState('1')
+  const [parcelaInicial, setParcelaInicial] = useState('1')
   const [categoria, setCategoria] = useState(transacao?.categoria ?? '')
   const [subcategoria, setSubcategoria] = useState(transacao?.subcategoria ?? '')
   const [data, setData] = useState(transacao?.data ?? hojeISO())
   const [descricao, setDescricao] = useState(transacao?.descricao ?? '')
   const [fixo, setFixo] = useState(transacao?.fixo ?? false)
+  const [showMore, setShowMore] = useState(Boolean(transacao?.subcategoria))
+
+  const sugestoesCategoria = Array.from(new Set([...CATEGORIAS_SUGERIDAS, ...categoriasExistentes])).sort()
 
   // Reseta os campos controlados assim que uma criação (não edição) é
   // bem-sucedida — o componente sobrevive à navegação de volta pra
@@ -56,11 +60,13 @@ export function TransacaoForm({
       setTipoSelecionado('despesa')
       setValor('')
       setTotalParcelas('1')
+      setParcelaInicial('1')
       setCategoria('')
       setSubcategoria('')
       setData(hojeISO())
       setDescricao('')
       setFixo(false)
+      setShowMore(false)
     }
   }
 
@@ -146,9 +152,24 @@ export function TransacaoForm({
               placeholder="1 (à vista)"
             />
           </div>
+          {Number(totalParcelas) > 1 && (
+            <div className={styles.fieldSmall}>
+              <label htmlFor="transacao_parcela_inicial">Essa é a parcela nº</label>
+              <input
+                id="transacao_parcela_inicial"
+                name="parcela_inicial"
+                type="number"
+                min="1"
+                max={totalParcelas}
+                value={parcelaInicial}
+                onChange={(e) => setParcelaInicial(e.target.value)}
+              />
+            </div>
+          )}
           <p className={styles.parcelasAjuda}>
-            Se maior que 1, o valor acima é dividido entre as parcelas e uma transação é criada
-            automaticamente pra cada mês, a partir da data informada.
+            {Number(totalParcelas) > 1 && Number(parcelaInicial) > 1
+              ? `Cria só as parcelas ${parcelaInicial} a ${totalParcelas}, usando a data informada como a data da parcela ${parcelaInicial} — as anteriores não são recriadas.`
+              : 'Se maior que 1, o valor acima é dividido entre as parcelas e uma transação é criada automaticamente pra cada mês, a partir da data informada.'}
           </p>
         </div>
       )}
@@ -166,27 +187,17 @@ export function TransacaoForm({
           <input
             id="transacao_categoria"
             name="categoria"
-            list="categorias-existentes"
+            list="categorias-sugeridas"
             value={categoria}
             onChange={(e) => setCategoria(e.target.value)}
             placeholder="Ex: Moradia, Mercado, Salário…"
             required
           />
-          <datalist id="categorias-existentes">
-            {categoriasExistentes.map((c) => (
+          <datalist id="categorias-sugeridas">
+            {sugestoesCategoria.map((c) => (
               <option key={c} value={c} />
             ))}
           </datalist>
-        </div>
-        <div className={styles.fieldGrow}>
-          <label htmlFor="transacao_subcategoria">Subcategoria</label>
-          <input
-            id="transacao_subcategoria"
-            name="subcategoria"
-            value={subcategoria}
-            onChange={(e) => setSubcategoria(e.target.value)}
-            placeholder="Opcional"
-          />
         </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="transacao_data">Data</label>
@@ -217,6 +228,25 @@ export function TransacaoForm({
           Gasto/receita fixo
         </label>
       </div>
+
+      <button type="button" onClick={() => setShowMore((v) => !v)} className={styles.toggleMoreBtn}>
+        {showMore ? '▴ Ocultar detalhe' : '▾ Adicionar detalhe'}
+      </button>
+
+      {showMore && (
+        <div className={styles.formRow}>
+          <div className={styles.fieldGrow}>
+            <label htmlFor="transacao_subcategoria">Subcategoria</label>
+            <input
+              id="transacao_subcategoria"
+              name="subcategoria"
+              value={subcategoria}
+              onChange={(e) => setSubcategoria(e.target.value)}
+              placeholder="Opcional"
+            />
+          </div>
+        </div>
+      )}
 
       <div className={styles.formActions}>
         <button type="submit" disabled={pending || contas.length === 0} className={styles.submitBtn}>

@@ -80,19 +80,41 @@ export function ContaForm({ conta }: { conta: ContaFinanceira | null }) {
             ))}
           </select>
         </div>
-        <div className={styles.fieldSmall}>
-          <label htmlFor="conta_saldo">Saldo atual</label>
-          <input
-            id="conta_saldo"
-            name="saldo_atual"
-            type="number"
-            step="0.01"
-            value={saldoAtual}
-            onChange={(e) => setSaldoAtual(e.target.value)}
-            placeholder="0,00"
-          />
-        </div>
+        {conta ? (
+          <div className={styles.fieldSmall}>
+            <label htmlFor="conta_saldo">Saldo inicial</label>
+            <input id="conta_saldo" type="number" value={saldoAtual} disabled />
+          </div>
+        ) : (
+          <div className={styles.fieldSmall}>
+            <label htmlFor="conta_saldo">Saldo inicial</label>
+            <input
+              id="conta_saldo"
+              name="saldo_atual"
+              type="number"
+              step="0.01"
+              value={saldoAtual}
+              onChange={(e) => setSaldoAtual(e.target.value)}
+              placeholder="0,00"
+            />
+          </div>
+        )}
       </div>
+
+      {!conta && (
+        <p className={styles.parcelasAjuda}>
+          Valor de quando a conta começa a ser rastreada no app — depois disso o saldo exibido é sempre
+          calculado a partir das transações lançadas, não editado direto.
+        </p>
+      )}
+
+      {conta && (
+        <p className={styles.parcelasAjuda}>
+          O saldo inicial não pode ser editado depois de criada a conta — o saldo exibido no app já é
+          calculado automaticamente (inicial + receitas pagas − despesas pagas). Pra corrigir algo, lance
+          uma transação (ex: categoria &quot;Ajuste de Saldo&quot;) em vez de editar este valor.
+        </p>
+      )}
 
       <div className={styles.formActions}>
         <button type="submit" disabled={pending} className={styles.submitBtn}>

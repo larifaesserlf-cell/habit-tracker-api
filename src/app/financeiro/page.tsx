@@ -8,8 +8,9 @@ import { TransacaoForm } from './TransacaoForm'
 import { DeleteTransacaoButton } from './DeleteTransacaoButton'
 import { FiltrosBar } from './FiltrosBar'
 import { GastosPorCategoriaChart } from './GastosPorCategoriaChart'
-import { CONTA_TIPO_LABEL, formatMoeda, formatDataBR } from './constants'
-import type { ContaFinanceira, Transacao } from '@/lib/supabase/types'
+import { StatusPagamentoToggle } from './StatusPagamentoToggle'
+import { CONTA_TIPO_LABEL, formatMoeda, formatDataBR, iconeCategoria, calcularSaldoConta } from './constants'
+import type { ContaFinanceira, StatusPagamento, Transacao } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -106,13 +107,32 @@ export default async function FinanceiroPage({
   const mesSelecionado = mesValido(mes)
   const { inicio, fim } = faixaDoMes(mesSelecionado)
   const transacoesDoMes = transacoes.filter((t) => t.data >= inicio && t.data <= fim)
-  const receitaDoMes = transacoesDoMes
-    .filter((t) => t.tipo === 'receita')
-    .reduce((soma, t) => soma + t.valor, 0)
-  const despesaDoMes = transacoesDoMes
-    .filter((t) => t.tipo === 'despesa')
-    .reduce((soma, t) => soma + t.valor, 0)
-  const saldoTotalContas = contas.reduce((soma, c) => soma + c.saldo_atual, 0)
+
+  // Realizado (já pago) e previsto (ainda pendente) somados separadamente —
+  // misturar os dois faria o saldo do mês parecer maior/menor do que já
+  // aconteceu de fato.
+  function somaPor(tipoAlvo: Transacao['tipo'], statusAlvo: StatusPagamento) {
+    return transacoesDoMes
+      .filter((t) => t.tipo === tipoAlvo && t.status_pagamento === statusAlvo)
+      .reduce((soma, t) => soma + t.valor, 0)
+  }
+  const receitaRealizadaDoMes = somaPor('receita', 'pago')
+  const receitaPrevistaDoMes = somaPor('receita', 'pendente')
+  const despesaRealizadaDoMes = somaPor('despesa', 'pago')
+  const despesaPrevistaDoMes = somaPor('despesa', 'pendente')
+
+  // Saldo de cada conta = saldo inicial + receitas pagas - despesas pagas
+  // (transações pendentes não contam até o status virar "pago").
+  const transacoesPorConta = new Map<string, Transacao[]>()
+  for (const t of transacoes) {
+    const lista = transacoesPorConta.get(t.conta_id) ?? []
+    lista.push(t)
+    transacoesPorConta.set(t.conta_id, lista)
+  }
+  const saldoTotalContas = contas.reduce(
+    (soma, c) => soma + calcularSaldoConta(c, transacoesPorConta.get(c.id) ?? []),
+    0
+  )
 
   // Agrupa as despesas do mês por categoria — não há lista fixa de
   // categorias no código, o gráfico reflete o que existir nos dados.
@@ -131,6 +151,17 @@ export default async function FinanceiroPage({
     if (categoria && t.categoria !== categoria) return false
     return true
   })
+
+  // Agrupa por mês (mais recente primeiro, já que `transacoesFiltradas` vem
+  // ordenada por data desc) pra listagem estilo Nubank, com um cabeçalho
+  // "Julho de 2026" antes de cada grupo.
+  const transacoesPorMes = new Map<string, Transacao[]>()
+  for (const t of transacoesFiltradas) {
+    const mesDaTransacao = t.data.slice(0, 7)
+    const lista = transacoesPorMes.get(mesDaTransacao) ?? []
+    lista.push(t)
+    transacoesPorMes.set(mesDaTransacao, lista)
+  }
 
   const editingConta = editConta ? contas.find((c) => c.id === editConta) ?? null : null
   const editingTransacao = editTransacao ? transacoes.find((t) => t.id === editTransacao) ?? null : null
@@ -168,12 +199,20 @@ export default async function FinanceiroPage({
             <div className={styles.statTileLabel}>Saldo total das contas</div>
           </div>
           <div className={`${styles.statTile} ${styles.statTilePositivo}`}>
-            <div className={styles.statTileValue}>{formatMoeda(receitaDoMes)}</div>
-            <div className={styles.statTileLabel}>Receita do mês</div>
+            <div className={styles.statTileValue}>{formatMoeda(receitaRealizadaDoMes)}</div>
+            <div className={styles.statTileLabel}>Receita realizada</div>
+          </div>
+          <div className={styles.statTile}>
+            <div className={styles.statTileValue}>{formatMoeda(receitaPrevistaDoMes)}</div>
+            <div className={styles.statTileLabel}>Receita prevista</div>
           </div>
           <div className={`${styles.statTile} ${styles.statTileNegativo}`}>
-            <div className={styles.statTileValue}>{formatMoeda(despesaDoMes)}</div>
-            <div className={styles.statTileLabel}>Despesa do mês</div>
+            <div className={styles.statTileValue}>{formatMoeda(despesaRealizadaDoMes)}</div>
+            <div className={styles.statTileLabel}>Despesa realizada</div>
+          </div>
+          <div className={styles.statTile}>
+            <div className={styles.statTileValue}>{formatMoeda(despesaPrevistaDoMes)}</div>
+            <div className={styles.statTileLabel}>Despesa prevista</div>
           </div>
         </div>
         {!estaNoMesAtual && (
@@ -200,7 +239,8 @@ export default async function FinanceiroPage({
                   <div>
                     <div className={styles.itemNome}>{c.nome}</div>
                     <div className={styles.itemMeta}>
-                      {CONTA_TIPO_LABEL[c.tipo]} · {formatMoeda(c.saldo_atual)}
+                      {CONTA_TIPO_LABEL[c.tipo]} ·{' '}
+                      {formatMoeda(calcularSaldoConta(c, transacoesPorConta.get(c.id) ?? []))}
                     </div>
                   </div>
                 </div>
@@ -246,44 +286,52 @@ export default async function FinanceiroPage({
               : 'Nenhuma transação bate com esses filtros.'}
           </p>
         ) : (
-          <ul className={styles.list}>
-            {transacoesFiltradas.map((t) => {
-              const conta = contaPorId.get(t.conta_id)
-              return (
-                <li key={t.id} className={styles.item}>
-                  <div className={styles.itemTop}>
-                    <span
-                      className={t.tipo === 'receita' ? styles.tipoReceita : styles.tipoDespesa}
-                    >
-                      {t.tipo === 'receita' ? '+ ' : '− '}
-                      {formatMoeda(t.valor)}
-                    </span>
-                    {t.fixo && <span className={styles.fixoBadge}>Fixo</span>}
-                    {t.total_parcelas > 1 && (
-                      <span className={styles.parcelaBadge}>
-                        {t.parcela_atual}/{t.total_parcelas}
-                      </span>
-                    )}
-                  </div>
-                  <div className={styles.itemTitulo}>
-                    {t.categoria}
-                    {t.subcategoria ? ` · ${t.subcategoria}` : ''}
-                  </div>
-                  <div className={styles.itemMeta}>
-                    {formatDataBR(t.data)}
-                    {conta ? ` · ${conta.nome}` : ''}
-                  </div>
-                  {t.descricao && <p className={styles.itemComentario}>{t.descricao}</p>}
-                  <div className={styles.itemActions}>
-                    <Link href={`/financeiro?editTransacao=${t.id}`} className={styles.editLink}>
-                      Editar
-                    </Link>
-                    <DeleteTransacaoButton transacao={t} />
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+          Array.from(transacoesPorMes, ([mesDoGrupo, transacoesDoGrupo]) => (
+            <div key={mesDoGrupo} className={styles.mesGrupo}>
+              <h3 className={styles.mesGrupoTitle}>{nomeMes(mesDoGrupo)}</h3>
+              <ul className={styles.list}>
+                {transacoesDoGrupo.map((t) => {
+                  const conta = contaPorId.get(t.conta_id)
+                  const pendente = t.status_pagamento === 'pendente'
+                  return (
+                    <li key={t.id} className={pendente ? `${styles.item} ${styles.itemPendente}` : styles.item}>
+                      <div className={styles.itemTop}>
+                        <span className={styles.itemIcone}>{iconeCategoria(t.categoria)}</span>
+                        <span className={t.tipo === 'receita' ? styles.tipoReceita : styles.tipoDespesa}>
+                          {t.tipo === 'receita' ? '+ ' : '− '}
+                          {formatMoeda(t.valor)}
+                        </span>
+                        {t.fixo && <span className={styles.fixoBadge}>Fixo</span>}
+                        {t.total_parcelas > 1 && (
+                          <span className={styles.parcelaBadge}>
+                            {t.parcela_atual}/{t.total_parcelas}
+                          </span>
+                        )}
+                        {t.status_pagamento && (
+                          <StatusPagamentoToggle id={t.id} status={t.status_pagamento} />
+                        )}
+                      </div>
+                      <div className={styles.itemTitulo}>
+                        {t.categoria}
+                        {t.subcategoria ? ` · ${t.subcategoria}` : ''}
+                      </div>
+                      <div className={styles.itemMeta}>
+                        {formatDataBR(t.data)}
+                        {conta ? ` · ${conta.nome}` : ''}
+                      </div>
+                      {t.descricao && <p className={styles.itemComentario}>{t.descricao}</p>}
+                      <div className={styles.itemActions}>
+                        <Link href={`/financeiro?editTransacao=${t.id}`} className={styles.editLink}>
+                          Editar
+                        </Link>
+                        <DeleteTransacaoButton transacao={t} />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </div>
+          ))
         )}
       </section>
     </div>

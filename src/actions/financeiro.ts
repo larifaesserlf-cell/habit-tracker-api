@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { textoOuNull, numeroOuNull, intOuNull } from '@/lib/formHelpers'
-import type { ContaTipo, TransacaoTipo, TipoAtivo } from '@/lib/supabase/types'
+import type { ContaTipo, StatusPagamento, TransacaoTipo, TipoAtivo } from '@/lib/supabase/types'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
@@ -58,7 +58,6 @@ export async function saveConta(
   const id = (formData.get('id') as string | null) || null
   const nome = (formData.get('nome') as string | null)?.trim() ?? ''
   const tipo = formData.get('tipo') as string | null
-  const saldoAtual = numeroOuNull(formData, 'saldo_atual') ?? 0
 
   if (nome.length === 0) {
     return { status: 'error', message: 'Informe o nome da conta.' }
@@ -75,11 +74,17 @@ export async function saveConta(
     return { status: 'error', message: 'Sessão expirada. Faça login novamente.' }
   }
 
-  const payload = { nome, tipo, saldo_atual: saldoAtual }
-
+  // O saldo inicial só é gravável na criação — depois disso o saldo exibido
+  // em todo o app é sempre calculado (inicial + transações pagas), então
+  // permitir editar `saldo_atual` livremente deixaria a pessoa "consertar"
+  // o número na mão e mascarar uma transação que faltou lançar. Se o campo
+  // vier no formData de uma edição (não deveria, o form nem renderiza mais
+  // esse input em modo editar), é ignorado aqui também, em profundidade.
   const { error } = id
-    ? await supabase.from('contas_financeiras').update(payload).eq('id', id).eq('user_id', user.id)
-    : await supabase.from('contas_financeiras').insert({ ...payload, user_id: user.id })
+    ? await supabase.from('contas_financeiras').update({ nome, tipo }).eq('id', id).eq('user_id', user.id)
+    : await supabase
+        .from('contas_financeiras')
+        .insert({ nome, tipo, saldo_atual: numeroOuNull(formData, 'saldo_atual') ?? 0, user_id: user.id })
 
   if (error) {
     return { status: 'error', message: `Erro ao salvar conta: ${error.message}` }
@@ -118,6 +123,19 @@ function somarMeses(dataISO: string, meses: number): string {
   const ultimoDiaDoMes = new Date(Date.UTC(novoAno, novoMes, 0)).getUTCDate()
   const novoDia = Math.min(dia, ultimoDiaDoMes)
   return `${novoAno}-${String(novoMes).padStart(2, '0')}-${String(novoDia).padStart(2, '0')}`
+}
+
+/** "Hoje" em ISO (YYYY-MM-DD), pelo relógio do servidor — mesma
+ *  simplificação já usada em outras telas do app (ex: mês do Financeiro). */
+function hojeISO(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+/** Regra automática de status ao criar uma transação: datas até hoje
+ *  nascem "pago", datas futuras nascem "pendente". Só vale na criação —
+ *  depois disso o status só muda por ação explícita da usuária. */
+function statusPagamentoAutomatico(data: string): StatusPagamento {
+  return data <= hojeISO() ? 'pago' : 'pendente'
 }
 
 /** Divide um valor total em N parcelas de 2 casas decimais cuja soma bate
@@ -175,6 +193,16 @@ export async function saveTransacao(
     return { status: 'error', message: `Número de parcelas muito alto (máximo ${MAX_PARCELAS}).` }
   }
 
+  // Parcela inicial: permite registrar uma compra que já estava "no meio"
+  // do parcelamento quando a pessoa começou a usar o app (ex: parcela 3 de
+  // 6) — só cria as parcelas de `parcelaInicial` em diante, sem recriar as
+  // que já teriam passado antes disso.
+  const parcelaInicialRaw = totalParcelas <= 1 ? 1 : intOuNull(formData, 'parcela_inicial') ?? 1
+  const parcelaInicial = Math.max(1, parcelaInicialRaw)
+  if (parcelaInicial > totalParcelas) {
+    return { status: 'error', message: 'A parcela inicial não pode ser maior que o total de parcelas.' }
+  }
+
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -191,7 +219,9 @@ export async function saveTransacao(
   const fixo = formData.get('fixo') === 'on'
 
   if (id) {
-    // Edição: só atualiza a própria linha, sem tocar em parcelamento.
+    // Edição: só atualiza a própria linha, sem tocar em parcelamento nem
+    // em status_pagamento — status é ajustado manualmente na listagem
+    // (marcar como pago/pendente), e editar outro campo não deve resetá-lo.
     const payload = { conta_id: contaId, tipo, categoria, subcategoria, valor, data, descricao: descricaoBase, fixo }
     const { error } = await supabase.from('transacoes').update(payload).eq('id', id).eq('user_id', user.id)
     if (error) {
@@ -202,7 +232,17 @@ export async function saveTransacao(
   }
 
   if (totalParcelas <= 1) {
-    const payload = { conta_id: contaId, tipo, categoria, subcategoria, valor, data, descricao: descricaoBase, fixo }
+    const payload = {
+      conta_id: contaId,
+      tipo,
+      categoria,
+      subcategoria,
+      valor,
+      data,
+      descricao: descricaoBase,
+      fixo,
+      status_pagamento: statusPagamentoAutomatico(data),
+    }
     const { error } = await supabase.from('transacoes').insert({ ...payload, user_id: user.id })
     if (error) {
       return { status: 'error', message: `Erro ao salvar transação: ${error.message}` }
@@ -211,25 +251,33 @@ export async function saveTransacao(
     return { status: 'success' }
   }
 
-  // Parcelado: gera uma linha por parcela, todas com o mesmo compra_id.
+  // Parcelado: gera uma linha por parcela (só a partir de `parcelaInicial`),
+  // todas com o mesmo compra_id. O valor de cada parcela é calculado
+  // dividindo o total entre TODAS as `totalParcelas` (não só as criadas
+  // agora), pra bater com o que as parcelas anteriores (não recriadas)
+  // já teriam valido.
   const compraId = randomUUID()
   const valoresPorParcela = dividirValorEmParcelas(valor, totalParcelas)
-  const linhas = valoresPorParcela.map((valorParcela, i) => ({
-    conta_id: contaId,
-    tipo,
-    categoria,
-    subcategoria,
-    valor: valorParcela,
-    data: somarMeses(data, i),
-    descricao: descricaoBase
-      ? `${descricaoBase} (${i + 1}/${totalParcelas})`
-      : `(${i + 1}/${totalParcelas})`,
-    fixo,
-    total_parcelas: totalParcelas,
-    parcela_atual: i + 1,
-    compra_id: compraId,
-    user_id: user.id,
-  }))
+  const linhas = valoresPorParcela.slice(parcelaInicial - 1).map((valorParcela, i) => {
+    const dataParcela = somarMeses(data, i)
+    return {
+      conta_id: contaId,
+      tipo,
+      categoria,
+      subcategoria,
+      valor: valorParcela,
+      data: dataParcela,
+      descricao: descricaoBase
+        ? `${descricaoBase} (${parcelaInicial + i}/${totalParcelas})`
+        : `(${parcelaInicial + i}/${totalParcelas})`,
+      fixo,
+      total_parcelas: totalParcelas,
+      parcela_atual: parcelaInicial + i,
+      compra_id: compraId,
+      status_pagamento: statusPagamentoAutomatico(dataParcela),
+      user_id: user.id,
+    }
+  })
 
   const { error } = await supabase.from('transacoes').insert(linhas)
   if (error) {
@@ -238,6 +286,25 @@ export async function saveTransacao(
 
   revalidatePath('/financeiro')
   return { status: 'success' }
+}
+
+/**
+ * Marca manualmente uma transação como paga ou pendente (botão de toggle na
+ * listagem) — sobrescreve o valor calculado automaticamente na criação.
+ */
+export async function toggleStatusPagamento(id: string, novoStatus: StatusPagamento) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase
+    .from('transacoes')
+    .update({ status_pagamento: novoStatus })
+    .eq('id', id)
+    .eq('user_id', user.id)
+  revalidatePath('/financeiro')
 }
 
 /**
