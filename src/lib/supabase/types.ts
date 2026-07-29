@@ -218,14 +218,9 @@ export type CicloMenstrual = {
   created_at: string
 }
 
-export type FluxoMenstrual = 'nenhum' | 'leve' | 'moderado' | 'intenso'
-
-export type RegistroCiclo = {
+export type ObservacaoCiclo = {
   id: string
   user_id: string
-  data: string
-  fluxo: FluxoMenstrual
-  tpm: boolean
   humor: string | null
   sintomas: string[] | null
   notas: string | null

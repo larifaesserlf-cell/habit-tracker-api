@@ -42,11 +42,9 @@ function dataISOde(ano: number, mes: number, dia: number): string {
 export function CalendarioMensal({
   mesISO,
   ciclos,
-  diasComTpm,
 }: {
   mesISO: string
   ciclos: CicloMenstrual[]
-  diasComTpm: Set<string>
 }) {
   const [ano, mes] = mesISO.split('-').map(Number)
   const { totalDias, diaSemanaInicio } = faixaDoMes(mesISO)
@@ -83,14 +81,12 @@ export function CalendarioMensal({
         {dias.map((dia) => {
           const dataISO = dataISOde(ano, mes, dia)
           const menstruacao = ehDiaDeMenstruacao(dataISO)
-          const tpm = diasComTpm.has(dataISO)
           return (
             <div
               key={dia}
               className={menstruacao ? `${styles.calendarDia} ${styles.calendarDiaMenstruacao}` : styles.calendarDia}
             >
               {dia}
-              {tpm && <span className={styles.calendarDiaTpmDot} />}
             </div>
           )
         })}
@@ -99,9 +95,6 @@ export function CalendarioMensal({
       <div className={styles.calendarLegenda}>
         <span className={styles.legendaItem}>
           <span className={`${styles.legendaSwatch} ${styles.legendaSwatchMenstruacao}`} /> Menstruação
-        </span>
-        <span className={styles.legendaItem}>
-          <span className={`${styles.legendaSwatch} ${styles.legendaSwatchTpm}`} /> TPM
         </span>
       </div>
     </section>

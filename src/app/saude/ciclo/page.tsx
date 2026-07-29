@@ -1,22 +1,20 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BackNav } from '@/components/BackNav'
-import { RegistroDiarioForm } from './RegistroDiarioForm'
 import { CicloEmAndamentoCard } from './CicloEmAndamentoCard'
 import { CicloForm } from './CicloForm'
 import { HistoricoCiclos } from './HistoricoCiclos'
 import { CalendarioMensal } from './CalendarioMensal'
 import { RelatorioPdfButton } from './RelatorioPdfButton'
-import type { CicloMenstrual, RegistroCiclo } from '@/lib/supabase/types'
+import { ObservacaoModalButton } from './ObservacaoModalButton'
+import { DeleteObservacaoButton } from './DeleteObservacaoButton'
+import type { CicloMenstrual, ObservacaoCiclo } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
   title: 'Ciclo Menstrual',
-}
-
-function hojeISO() {
-  return new Date().toISOString().slice(0, 10)
 }
 
 function mesAtualISO(): string {
@@ -24,31 +22,54 @@ function mesAtualISO(): string {
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`
 }
 
-function dataValida(data: string | undefined): string {
-  return data && /^\d{4}-\d{2}-\d{2}$/.test(data) ? data : hojeISO()
-}
-
 function mesValido(mes: string | undefined): string {
   return mes && /^\d{4}-\d{2}$/.test(mes) ? mes : mesAtualISO()
 }
 
-/** Primeiro e último dia do mês ("YYYY-MM"), em ISO — cálculo em UTC. */
-function faixaDoMes(mesISO: string) {
+/** Desloca um mês ("YYYY-MM") por `delta` meses (pode ser negativo). */
+function deslocarMes(mesISO: string, delta: number): string {
   const [ano, mes] = mesISO.split('-').map(Number)
-  const inicio = new Date(Date.UTC(ano, mes - 1, 1))
-  const fim = new Date(Date.UTC(ano, mes, 0))
-  return { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) }
+  const totalMeses = mes - 1 + delta
+  const novoAno = ano + Math.floor(totalMeses / 12)
+  const novoMes = (((totalMeses % 12) + 12) % 12) + 1
+  return `${novoAno}-${String(novoMes).padStart(2, '0')}`
+}
+
+/** Nome do mês por extenso em pt-BR, ex: "Agosto de 2026". */
+function nomeMes(mesISO: string): string {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const nome = new Date(Date.UTC(ano, mes - 1, 1)).toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  return nome.charAt(0).toUpperCase() + nome.slice(1)
+}
+
+/** Início do mês e do mês seguinte como timestamps, pra filtrar
+ *  `created_at` (timestamptz) por um intervalo [início, fim). */
+function faixaMesTimestamp(mesISO: string) {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const inicio = new Date(Date.UTC(ano, mes - 1, 1)).toISOString()
+  const fimExclusivo = new Date(Date.UTC(ano, mes, 1)).toISOString()
+  return { inicio, fimExclusivo }
+}
+
+function formatDataHoraBR(iso: string): string {
+  const data = iso.slice(0, 10).split('-').reverse().join('/')
+  const hora = iso.slice(11, 16)
+  return `${data} ${hora}`
 }
 
 export default async function CicloPage({
   searchParams,
 }: {
-  searchParams: Promise<{ data?: string; mes?: string; editCiclo?: string }>
+  searchParams: Promise<{ mes?: string; editCiclo?: string }>
 }) {
-  const { data: dataParam, mes: mesParam, editCiclo } = await searchParams
-  const dataSelecionada = dataValida(dataParam)
+  const { mes: mesParam, editCiclo } = await searchParams
   const mesISO = mesValido(mesParam)
-  const { inicio: inicioMes, fim: fimMes } = faixaDoMes(mesISO)
+  const { inicio: inicioMesTs, fimExclusivo: fimMesTs } = faixaMesTimestamp(mesISO)
+  const estaNoMesAtual = mesISO === mesAtualISO()
 
   const supabase = await createSupabaseServerClient()
   const {
@@ -59,25 +80,23 @@ export default async function CicloPage({
     redirect('/login')
   }
 
-  const [{ data: ciclosData }, { data: registroDiaData }, { data: registrosMesData }] = await Promise.all([
+  const [{ data: ciclosData }, { data: observacoesData }] = await Promise.all([
     supabase
       .from('ciclos_menstruais')
       .select('*')
       .eq('user_id', user.id)
       .order('data_inicio', { ascending: false }),
-    supabase.from('registros_ciclo').select('*').eq('user_id', user.id).eq('data', dataSelecionada).maybeSingle(),
     supabase
-      .from('registros_ciclo')
-      .select('data, tpm')
+      .from('observacoes_ciclo')
+      .select('*')
       .eq('user_id', user.id)
-      .eq('tpm', true)
-      .gte('data', inicioMes)
-      .lte('data', fimMes),
+      .gte('created_at', inicioMesTs)
+      .lt('created_at', fimMesTs)
+      .order('created_at', { ascending: false }),
   ])
 
   const ciclos = (ciclosData ?? []) as CicloMenstrual[]
-  const registroDoDia = (registroDiaData ?? null) as RegistroCiclo | null
-  const diasComTpm = new Set((registrosMesData ?? []).map((r) => r.data as string))
+  const observacoes = (observacoesData ?? []) as ObservacaoCiclo[]
 
   const cicloAberto = ciclos.find((c) => !c.data_fim) ?? null
   const editingCiclo = editCiclo ? ciclos.find((c) => c.id === editCiclo) ?? null : null
@@ -92,11 +111,55 @@ export default async function CicloPage({
       <CicloEmAndamentoCard cicloAberto={cicloAberto} />
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>Registro diário</h2>
-        <RegistroDiarioForm key={dataSelecionada} dataSelecionada={dataSelecionada} registro={registroDoDia} />
+        <div className={styles.mesNav}>
+          <Link href={`/saude/ciclo?mes=${deslocarMes(mesISO, -1)}`} className={styles.mesNavArrow} aria-label="Mês anterior">
+            ←
+          </Link>
+          <h2 className={styles.cardTitle}>Observações de {nomeMes(mesISO)}</h2>
+          <Link href={`/saude/ciclo?mes=${deslocarMes(mesISO, 1)}`} className={styles.mesNavArrow} aria-label="Próximo mês">
+            →
+          </Link>
+        </div>
+
+        <ObservacaoModalButton />
+
+        {observacoes.length === 0 ? (
+          <p className={styles.empty} style={{ marginTop: '1rem' }}>
+            Nenhuma observação registrada neste mês.
+          </p>
+        ) : (
+          <ul className={styles.list} style={{ marginTop: '1rem' }}>
+            {observacoes.map((o) => (
+              <li key={o.id} className={styles.item}>
+                <div className={styles.obsDataHora}>{formatDataHoraBR(o.created_at)}</div>
+                {o.humor && <div className={styles.itemNome}>Humor: {o.humor}</div>}
+                {o.sintomas && o.sintomas.length > 0 && (
+                  <div className={styles.tags}>
+                    {o.sintomas.map((s) => (
+                      <span key={s} className={styles.tag}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {o.notas && <p className={styles.obsNotas}>{o.notas}</p>}
+                <div className={styles.itemActions}>
+                  <ObservacaoModalButton observacao={o} />
+                  <DeleteObservacaoButton id={o.id} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {!estaNoMesAtual && (
+          <Link href="/saude/ciclo" className={styles.voltarMesAtual}>
+            ← Voltar pro mês atual
+          </Link>
+        )}
       </section>
 
-      <CalendarioMensal mesISO={mesISO} ciclos={ciclos} diasComTpm={diasComTpm} />
+      <CalendarioMensal mesISO={mesISO} ciclos={ciclos} />
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Histórico de ciclos</h2>

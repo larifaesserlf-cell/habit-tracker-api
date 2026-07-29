@@ -2,14 +2,11 @@
 
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import type { FluxoMenstrual } from '@/lib/supabase/types'
 
 export type CicloFormState =
   | { status: 'idle' }
   | { status: 'error'; message: string }
   | { status: 'success' }
-
-const FLUXOS: FluxoMenstrual[] = ['nenhum', 'leve', 'moderado', 'intenso']
 
 /**
  * Server Action única pra criar/editar um ciclo — serve os quatro fluxos da
@@ -73,32 +70,28 @@ export async function deleteCiclo(id: string) {
 }
 
 /**
- * Server Action de criação/edição do registro diário. Como só pode haver um
- * registro por (usuária, data), faz upsert em vez de decidir entre
- * insert/update — salvar de novo pro mesmo dia atualiza o registro existente.
+ * Server Action de criação/edição de uma observação livre do mês. Sem campo
+ * de data — na criação, `created_at` é o horário do banco (now()); na
+ * edição, não é alterado, pra observação não "pular" de posição na lista
+ * cronológica só por ter sido corrigida depois.
  */
-export async function saveRegistroDiario(
+export async function saveObservacao(
   _prevState: CicloFormState,
   formData: FormData
 ): Promise<CicloFormState> {
-  const data = (formData.get('data') as string | null)?.trim() ?? ''
-  const fluxo = (formData.get('fluxo') as string | null) ?? 'nenhum'
-  const tpm = formData.get('tpm') === 'on'
+  const id = (formData.get('id') as string | null) || null
   const humor = (formData.get('humor') as string | null)?.trim() || null
   const sintomasRaw = (formData.get('sintomas') as string | null) ?? ''
   const notas = (formData.get('notas') as string | null)?.trim() || null
-
-  if (!data) {
-    return { status: 'error', message: 'Informe a data do registro.' }
-  }
-  if (!FLUXOS.includes(fluxo as FluxoMenstrual)) {
-    return { status: 'error', message: 'Fluxo inválido.' }
-  }
 
   const sintomas = sintomasRaw
     .split(',')
     .map((s) => s.trim())
     .filter((s) => s.length > 0)
+
+  if (!humor && sintomas.length === 0 && !notas) {
+    return { status: 'error', message: 'Preencha pelo menos um campo.' }
+  }
 
   const supabase = await createSupabaseServerClient()
   const {
@@ -108,23 +101,34 @@ export async function saveRegistroDiario(
     return { status: 'error', message: 'Sessão expirada. Faça login novamente.' }
   }
 
-  const { error } = await supabase.from('registros_ciclo').upsert(
-    {
-      user_id: user.id,
-      data,
-      fluxo,
-      tpm,
-      humor,
-      sintomas: sintomas.length > 0 ? sintomas : null,
-      notas,
-    },
-    { onConflict: 'user_id,data' }
-  )
+  const payload = {
+    humor,
+    sintomas: sintomas.length > 0 ? sintomas : null,
+    notas,
+  }
+
+  const { error } = id
+    ? await supabase.from('observacoes_ciclo').update(payload).eq('id', id).eq('user_id', user.id)
+    : await supabase.from('observacoes_ciclo').insert({ ...payload, user_id: user.id })
 
   if (error) {
-    return { status: 'error', message: `Erro ao salvar registro: ${error.message}` }
+    return { status: 'error', message: `Erro ao salvar observação: ${error.message}` }
   }
 
   revalidatePath('/saude/ciclo')
   return { status: 'success' }
+}
+
+/**
+ * Exclui a observação definitivamente.
+ */
+export async function deleteObservacao(id: string) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('observacoes_ciclo').delete().eq('id', id).eq('user_id', user.id)
+  revalidatePath('/saude/ciclo')
 }

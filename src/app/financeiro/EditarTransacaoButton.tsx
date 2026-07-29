@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Modal } from './Modal'
+import { Modal } from '@/components/Modal'
 import { TransacaoForm } from './TransacaoForm'
 import { EditarCompraParceladaForm } from './EditarCompraParceladaForm'
 import type { ContaFinanceira, Transacao } from '@/lib/supabase/types'

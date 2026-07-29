@@ -1,17 +1,10 @@
 import type { NextRequest } from 'next/server'
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from '@react-pdf/renderer'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import type { CicloMenstrual, FluxoMenstrual, RegistroCiclo } from '@/lib/supabase/types'
+import type { CicloMenstrual, ObservacaoCiclo } from '@/lib/supabase/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
-
-const FLUXO_LABEL: Record<FluxoMenstrual, string> = {
-  nenhum: 'Nenhum',
-  leve: 'Leve',
-  moderado: 'Moderado',
-  intenso: 'Intenso',
-}
 
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
@@ -21,10 +14,20 @@ function formatDataBR(data: string) {
   return data.split('-').reverse().join('/')
 }
 
+function formatDataHoraBR(iso: string) {
+  return `${formatDataBR(iso.slice(0, 10))} ${iso.slice(11, 16)}`
+}
+
 /** Desloca uma data ISO (YYYY-MM-DD) por `n` meses pra trás, em UTC. */
 function subtrairMeses(dataISO: string, n: number): string {
   const [ano, mes, dia] = dataISO.split('-').map(Number)
   return new Date(Date.UTC(ano, mes - 1 - n, dia)).toISOString().slice(0, 10)
+}
+
+/** Um dia depois da data ISO informada. */
+function somarUmDia(dataISO: string): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  return new Date(Date.UTC(ano, mes - 1, dia + 1)).toISOString().slice(0, 10)
 }
 
 /** Duração inclusiva em dias entre duas datas ISO. */
@@ -89,12 +92,12 @@ function RelatorioCicloDocument({
   inicio,
   fim,
   ciclos,
-  registros,
+  observacoes,
 }: {
   inicio: string
   fim: string
   ciclos: CicloMenstrual[]
-  registros: RegistroCiclo[]
+  observacoes: ObservacaoCiclo[]
 }) {
   return (
     <Document>
@@ -126,25 +129,21 @@ function RelatorioCicloDocument({
           </View>
         )}
 
-        <Text style={pdfStyles.secaoTitulo}>Registros diários</Text>
-        {registros.length === 0 ? (
-          <Text style={pdfStyles.vazio}>Nenhum registro relevante nesse período.</Text>
+        <Text style={pdfStyles.secaoTitulo}>Observações</Text>
+        {observacoes.length === 0 ? (
+          <Text style={pdfStyles.vazio}>Nenhuma observação registrada nesse período.</Text>
         ) : (
           <View>
-            {registros.map((registro) => (
-              <View key={registro.id} style={pdfStyles.registro}>
+            {observacoes.map((observacao) => (
+              <View key={observacao.id} style={pdfStyles.registro}>
                 <View style={pdfStyles.registroCabecalho}>
-                  <Text style={pdfStyles.registroData}>{formatDataBR(registro.data)}</Text>
-                  <Text>
-                    {FLUXO_LABEL[registro.fluxo]}
-                    {registro.tpm ? ' · TPM' : ''}
-                  </Text>
+                  <Text style={pdfStyles.registroData}>{formatDataHoraBR(observacao.created_at)}</Text>
                 </View>
-                {registro.humor && <Text style={pdfStyles.registroDetalhe}>Humor: {registro.humor}</Text>}
-                {registro.sintomas && registro.sintomas.length > 0 && (
-                  <Text style={pdfStyles.registroDetalhe}>Sintomas: {registro.sintomas.join(', ')}</Text>
+                {observacao.humor && <Text style={pdfStyles.registroDetalhe}>Humor: {observacao.humor}</Text>}
+                {observacao.sintomas && observacao.sintomas.length > 0 && (
+                  <Text style={pdfStyles.registroDetalhe}>Sintomas: {observacao.sintomas.join(', ')}</Text>
                 )}
-                {registro.notas && <Text style={pdfStyles.registroNota}>{registro.notas}</Text>}
+                {observacao.notas && <Text style={pdfStyles.registroNota}>{observacao.notas}</Text>}
               </View>
             ))}
           </View>
@@ -164,10 +163,10 @@ export async function GET(request: NextRequest) {
   }
 
   const periodoResolvido = await resolverPeriodo(request.nextUrl.searchParams, async () => {
-    // "Todo o histórico": usa a data mais antiga entre ciclos e registros em
-    // vez de um limite arbitrário, pra o cabeçalho do PDF mostrar um período
-    // real em vez de "01/01/1900". Sem nenhum dado, cai no dia de hoje.
-    const [{ data: cicloMaisAntigo }, { data: registroMaisAntigo }] = await Promise.all([
+    // "Todo o histórico": usa a data mais antiga entre ciclos e observações
+    // em vez de um limite arbitrário, pra o cabeçalho do PDF mostrar um
+    // período real em vez de "01/01/1900". Sem nenhum dado, cai no dia de hoje.
+    const [{ data: cicloMaisAntigo }, { data: observacaoMaisAntiga }] = await Promise.all([
       supabase
         .from('ciclos_menstruais')
         .select('data_inicio')
@@ -176,16 +175,17 @@ export async function GET(request: NextRequest) {
         .limit(1)
         .maybeSingle(),
       supabase
-        .from('registros_ciclo')
-        .select('data')
+        .from('observacoes_ciclo')
+        .select('created_at')
         .eq('user_id', user.id)
-        .order('data', { ascending: true })
+        .order('created_at', { ascending: true })
         .limit(1)
         .maybeSingle(),
     ])
-    const candidatos = [cicloMaisAntigo?.data_inicio, registroMaisAntigo?.data].filter(
-      (d): d is string => Boolean(d)
-    )
+    const candidatos = [
+      cicloMaisAntigo?.data_inicio,
+      observacaoMaisAntiga?.created_at ? (observacaoMaisAntiga.created_at as string).slice(0, 10) : undefined,
+    ].filter((d): d is string => Boolean(d))
     return candidatos.length > 0 ? candidatos.sort()[0] : hojeISO()
   })
   if (!periodoResolvido) {
@@ -193,7 +193,7 @@ export async function GET(request: NextRequest) {
   }
   const { inicio, fim } = periodoResolvido
 
-  const [{ data: ciclosData }, { data: registrosData }] = await Promise.all([
+  const [{ data: ciclosData }, { data: observacoesData }] = await Promise.all([
     supabase
       .from('ciclos_menstruais')
       .select('*')
@@ -202,21 +202,19 @@ export async function GET(request: NextRequest) {
       .or(`data_fim.is.null,data_fim.gte.${inicio}`)
       .order('data_inicio', { ascending: true }),
     supabase
-      .from('registros_ciclo')
+      .from('observacoes_ciclo')
       .select('*')
       .eq('user_id', user.id)
-      .gte('data', inicio)
-      .lte('data', fim)
-      .order('data', { ascending: true }),
+      .gte('created_at', `${inicio}T00:00:00.000Z`)
+      .lt('created_at', `${somarUmDia(fim)}T00:00:00.000Z`)
+      .order('created_at', { ascending: true }),
   ])
 
   const ciclos = (ciclosData ?? []) as CicloMenstrual[]
-  const registros = ((registrosData ?? []) as RegistroCiclo[]).filter(
-    (r) => r.tpm || r.fluxo !== 'nenhum' || Boolean(r.notas && r.notas.trim().length > 0)
-  )
+  const observacoes = (observacoesData ?? []) as ObservacaoCiclo[]
 
   const buffer = await renderToBuffer(
-    <RelatorioCicloDocument inicio={inicio} fim={fim} ciclos={ciclos} registros={registros} />
+    <RelatorioCicloDocument inicio={inicio} fim={fim} ciclos={ciclos} observacoes={observacoes} />
   )
 
   return new Response(new Uint8Array(buffer), {
