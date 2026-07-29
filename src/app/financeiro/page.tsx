@@ -275,6 +275,17 @@ export default async function FinanceiroPage({
       </section>
 
       <section className={styles.card}>
+        {contas.length === 0 ? (
+          <p className={styles.empty}>Crie uma conta acima antes de registrar uma transação.</p>
+        ) : (
+          <CollapsibleSection forceOpen={false} openLabel="+ Nova transação">
+            <h2 className={styles.cardTitle}>Nova transação</h2>
+            <TransacaoForm transacao={null} contas={contas} categoriasExistentes={categoriasExistentes} />
+          </CollapsibleSection>
+        )}
+      </section>
+
+      <section className={styles.card}>
         <div className={styles.mesNav}>
           <Link href={hrefMesAnterior} className={styles.mesNavArrow} aria-label="Mês anterior">
             ←
@@ -393,17 +404,6 @@ export default async function FinanceiroPage({
           </ul>
         </section>
       )}
-
-      <section className={styles.card}>
-        {contas.length === 0 ? (
-          <p className={styles.empty}>Crie uma conta acima antes de registrar uma transação.</p>
-        ) : (
-          <CollapsibleSection forceOpen={false} openLabel="+ Nova transação">
-            <h2 className={styles.cardTitle}>Nova transação</h2>
-            <TransacaoForm transacao={null} contas={contas} categoriasExistentes={categoriasExistentes} />
-          </CollapsibleSection>
-        )}
-      </section>
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Transações</h2>
