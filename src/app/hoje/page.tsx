@@ -9,7 +9,7 @@ import { HabitCheckInButton } from '@/components/HabitCheckInButton'
 import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { calcularProgressoMeta } from '@/lib/metaProgresso'
 import { GastosPorCategoriaChart } from '../financeiro/GastosPorCategoriaChart'
-import type { Area, Destino, Habit, Meta, RotinaBloco, Transacao, Viagem } from '@/lib/supabase/types'
+import type { Area, Compromisso, Destino, Habit, Meta, Transacao, Viagem } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -35,6 +35,16 @@ function formatDataBR(data: string) {
  *  fuso, sem a complexidade de refazer o cálculo no navegador aqui. */
 function hojeISO() {
   return new Date().toISOString().slice(0, 10)
+}
+
+/** Janela de ontem até amanhã (relógio do servidor): a comparação exata com
+ *  "hoje" é feita no client (fuso do navegador), então a busca no servidor
+ *  só precisa de uma margem de segurança em volta da virada do dia. */
+function janelaCompromissosHoje() {
+  const agora = new Date()
+  const inicio = new Date(agora.getTime() - 86400000).toISOString().slice(0, 10)
+  const fim = new Date(agora.getTime() + 86400000).toISOString().slice(0, 10)
+  return { inicio, fim }
 }
 
 /** Primeiro e último dia do mês atual (relógio do servidor), em ISO. */
@@ -95,20 +105,26 @@ export default async function HojePage() {
   }
 
   const { inicio: inicioMes, fim: fimMes } = faixaMesAtual()
+  const { inicio: inicioCompromissos, fim: fimCompromissos } = janelaCompromissosHoje()
 
   const [
     { data: areasData },
-    { data: rotinaData },
+    { data: compromissosData },
     { data: habitsData },
     { data: metasData },
     { data: viagensData },
     { data: transacoesData },
   ] = await Promise.all([
-    // Todas as áreas (não só ativas): hábitos/metas/rotina podem estar
-    // vinculados a uma área já arquivada, e ainda queremos mostrar o nome
-    // dela (com indicação de que está arquivada) em vez de nada.
+    // Todas as áreas (não só ativas): hábitos/metas/compromissos podem
+    // estar vinculados a uma área já arquivada, e ainda queremos mostrar o
+    // nome dela (com indicação de que está arquivada) em vez de nada.
     supabase.from('areas').select('*').eq('user_id', user.id),
-    supabase.from('rotina_diaria').select('*').eq('user_id', user.id),
+    supabase
+      .from('compromissos')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('data', inicioCompromissos)
+      .lte('data', fimCompromissos),
     supabase.from('habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('metas').select('*').eq('status', 'ativa'),
     supabase.from('viagens').select('*').eq('user_id', user.id),
@@ -122,7 +138,7 @@ export default async function HojePage() {
 
   const areas = (areasData ?? []) as Area[]
   const areaPorId = new Map(areas.map((a) => [a.id, a]))
-  const rotina = (rotinaData ?? []) as RotinaBloco[]
+  const compromissos = (compromissosData ?? []) as Compromisso[]
   const habits = (habitsData ?? []) as Habit[]
   const habitoPorId = new Map(habits.map((h) => [h.id, h]))
   const metas = (metasData ?? []) as Meta[]
@@ -224,7 +240,7 @@ export default async function HojePage() {
         </form>
       </div>
 
-      <CompromissosHojeCard blocos={rotina} areaPorId={areaPorId} />
+      <CompromissosHojeCard compromissos={compromissos} areaPorId={areaPorId} />
 
       <section className={styles.card}>
         <div className={styles.cardHeader}>

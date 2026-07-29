@@ -3,28 +3,28 @@
 import { revalidatePath } from 'next/cache'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-export type RotinaFormState =
+export type CompromissoFormState =
   | { status: 'idle' }
   | { status: 'error'; message: string }
   | { status: 'success' }
 
 /**
- * Server Action de criação/edição de bloco de rotina.
+ * Server Action de criação/edição de compromisso.
  * Se `formData` tiver um campo `id` preenchido, atualiza; senão, cria.
  */
-export async function saveBloco(
-  _prevState: RotinaFormState,
+export async function saveCompromisso(
+  _prevState: CompromissoFormState,
   formData: FormData
-): Promise<RotinaFormState> {
+): Promise<CompromissoFormState> {
   const id = (formData.get('id') as string | null) || null
-  const diaSemana = Number(formData.get('dia_semana'))
+  const data = (formData.get('data') as string | null) ?? ''
   const horaInicio = (formData.get('hora_inicio') as string | null) ?? ''
   const horaFim = (formData.get('hora_fim') as string | null) ?? ''
   const atividade = (formData.get('atividade') as string | null)?.trim() ?? ''
   const areaId = (formData.get('area_id') as string | null) || null
 
-  if (!Number.isInteger(diaSemana) || diaSemana < 0 || diaSemana > 6) {
-    return { status: 'error', message: 'Selecione um dia da semana válido.' }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) {
+    return { status: 'error', message: 'Selecione uma data válida.' }
   }
   if (atividade.length < 2) {
     return { status: 'error', message: 'A atividade deve ter pelo menos 2 caracteres.' }
@@ -57,7 +57,7 @@ export async function saveBloco(
   }
 
   const payload = {
-    dia_semana: diaSemana,
+    data,
     hora_inicio: horaInicio,
     hora_fim: horaFim,
     atividade,
@@ -65,27 +65,41 @@ export async function saveBloco(
   }
 
   const { error } = id
-    ? await supabase.from('rotina_diaria').update(payload).eq('id', id).eq('user_id', user.id)
-    : await supabase.from('rotina_diaria').insert({ ...payload, user_id: user.id })
+    ? await supabase.from('compromissos').update(payload).eq('id', id).eq('user_id', user.id)
+    : await supabase.from('compromissos').insert({ ...payload, user_id: user.id })
 
   if (error) {
-    return { status: 'error', message: `Erro ao salvar bloco: ${error.message}` }
+    return { status: 'error', message: `Erro ao salvar compromisso: ${error.message}` }
   }
 
   revalidatePath('/habitos')
+  revalidatePath('/hoje')
   return { status: 'success' }
 }
 
 /**
- * Exclui o bloco de rotina definitivamente.
+ * Exclui o compromisso definitivamente.
  */
-export async function deleteBloco(id: string) {
+export async function deleteCompromisso(id: string) {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) return
 
-  await supabase.from('rotina_diaria').delete().eq('id', id).eq('user_id', user.id)
+  await supabase.from('compromissos').delete().eq('id', id).eq('user_id', user.id)
+  revalidatePath('/habitos')
+  revalidatePath('/hoje')
+}
+
+/** Marca/desmarca um compromisso já passado como feito. */
+export async function toggleCompromissoFeito(id: string, feito: boolean) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('compromissos').update({ feito }).eq('id', id).eq('user_id', user.id)
   revalidatePath('/habitos')
 }

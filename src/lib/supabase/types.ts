@@ -42,17 +42,15 @@ export type Meta = {
   created_at: string
 }
 
-/** 0 = domingo, 6 = sábado (segue o padrão do JS Date#getDay()). */
-export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6
-
-export type RotinaBloco = {
+export type Compromisso = {
   id: string
   user_id: string
-  dia_semana: DiaSemana
+  data: string
   hora_inicio: string
   hora_fim: string
   atividade: string
   area_id: string | null
+  feito: boolean
 }
 
 export type MidiaTipo = 'livro' | 'filme' | 'serie' | 'documentario'

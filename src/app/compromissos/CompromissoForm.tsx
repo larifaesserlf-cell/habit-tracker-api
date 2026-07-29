@@ -3,46 +3,41 @@
 import { useActionState, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { saveBloco, type RotinaFormState } from '@/actions/rotina'
-import type { Area, RotinaBloco } from '@/lib/supabase/types'
+import { saveCompromisso, type CompromissoFormState } from '@/actions/compromissos'
+import type { Area, Compromisso } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
-const initialState: RotinaFormState = { status: 'idle' }
+const initialState: CompromissoFormState = { status: 'idle' }
 
-const DIAS = [
-  { valor: 0, label: 'Domingo' },
-  { valor: 1, label: 'Segunda' },
-  { valor: 2, label: 'Terça' },
-  { valor: 3, label: 'Quarta' },
-  { valor: 4, label: 'Quinta' },
-  { valor: 5, label: 'Sexta' },
-  { valor: 6, label: 'Sábado' },
-]
+function hojeISO() {
+  return new Date().toISOString().slice(0, 10)
+}
 
-export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: Area[] }) {
-  const [state, formAction, pending] = useActionState(saveBloco, initialState)
+export function CompromissoForm({ compromisso, areas }: { compromisso: Compromisso | null; areas: Area[] }) {
+  const [state, formAction, pending] = useActionState(saveCompromisso, initialState)
   const router = useRouter()
 
   // Controlados (em vez de defaultValue) porque o React reseta os campos
   // não-controlados de um <form action={...}> depois de QUALQUER submissão,
   // inclusive quando a action retorna erro — sem isso, o texto digitado
   // some junto com a mensagem de validação.
-  const [atividade, setAtividade] = useState(bloco?.atividade ?? '')
-  const [diaSemana, setDiaSemana] = useState(String(bloco?.dia_semana ?? 1))
-  const [horaInicio, setHoraInicio] = useState(bloco?.hora_inicio?.slice(0, 5) ?? '')
-  const [horaFim, setHoraFim] = useState(bloco?.hora_fim?.slice(0, 5) ?? '')
-  const [areaId, setAreaId] = useState(bloco?.area_id ?? '')
+  const [atividade, setAtividade] = useState(compromisso?.atividade ?? '')
+  const [data, setData] = useState(compromisso?.data ?? hojeISO())
+  const [horaInicio, setHoraInicio] = useState(compromisso?.hora_inicio?.slice(0, 5) ?? '')
+  const [horaFim, setHoraFim] = useState(compromisso?.hora_fim?.slice(0, 5) ?? '')
+  const [areaId, setAreaId] = useState(compromisso?.area_id ?? '')
 
   // Reseta os campos controlados assim que uma criação (não edição) é
   // bem-sucedida — o componente sobrevive à navegação de volta pra
-  // /habitos?secao=rotina (mesma tela), então sem isso o próximo bloco
-  // herdaria os valores do anterior. Ajustado durante o render, não num efeito.
+  // /habitos?secao=compromissos (mesma tela), então sem isso o próximo
+  // compromisso herdaria os valores do anterior. Ajustado durante o
+  // render, não num efeito.
   const [stateAnterior, setStateAnterior] = useState(state)
   if (state !== stateAnterior) {
     setStateAnterior(state)
-    if (state.status === 'success' && !bloco) {
+    if (state.status === 'success' && !compromisso) {
       setAtividade('')
-      setDiaSemana('1')
+      setData(hojeISO())
       setHoraInicio('')
       setHoraFim('')
       setAreaId('')
@@ -51,7 +46,7 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
 
   useEffect(() => {
     if (state.status === 'success') {
-      router.push('/habitos?secao=rotina')
+      router.push('/habitos?secao=compromissos')
       router.refresh()
     }
   }, [state.status, router])
@@ -74,7 +69,7 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
 
   return (
     <form action={formAction} className={styles.form}>
-      {bloco && <input type="hidden" name="id" value={bloco.id} />}
+      {compromisso && <input type="hidden" name="id" value={compromisso.id} />}
 
       {state.status === 'error' && (
         <p className={styles.error} role="alert">
@@ -90,19 +85,13 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
             name="atividade"
             value={atividade}
             onChange={(e) => setAtividade(e.target.value)}
-            placeholder="Ex: Academia"
+            placeholder="Ex: Consulta médica"
             required
           />
         </div>
         <div className={styles.fieldSmall}>
-          <label htmlFor="dia_semana">Dia</label>
-          <select id="dia_semana" name="dia_semana" value={diaSemana} onChange={(e) => setDiaSemana(e.target.value)}>
-            {DIAS.map((d) => (
-              <option key={d.valor} value={d.valor}>
-                {d.label}
-              </option>
-            ))}
-          </select>
+          <label htmlFor="data">Data</label>
+          <input id="data" name="data" type="date" value={data} onChange={(e) => setData(e.target.value)} required />
         </div>
         <div className={styles.fieldSmall}>
           <label htmlFor="hora_inicio">Início</label>
@@ -132,7 +121,7 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
             <option value="">Sem área</option>
             {areas.map((area) => (
               <option key={area.id} value={area.id}>
-                {area.icone} {area.nome}
+                {area.nome}
               </option>
             ))}
           </select>
@@ -141,10 +130,10 @@ export function BlocoForm({ bloco, areas }: { bloco: RotinaBloco | null; areas: 
 
       <div className={styles.formActions}>
         <button type="submit" disabled={pending} className={styles.submitBtn}>
-          {pending ? 'Salvando…' : bloco ? 'Salvar alterações' : 'Criar bloco'}
+          {pending ? 'Salvando…' : compromisso ? 'Salvar alterações' : 'Criar compromisso'}
         </button>
-        {bloco && (
-          <Link href="/habitos?secao=rotina" className={styles.cancelLink}>
+        {compromisso && (
+          <Link href="/habitos?secao=compromissos" className={styles.cancelLink}>
             Cancelar
           </Link>
         )}

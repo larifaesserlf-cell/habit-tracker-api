@@ -5,26 +5,18 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { HabitForm } from './HabitForm'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
 import { labelFrequencia } from '@/lib/habitFrequencia'
-import { BlocoForm } from '../rotina/BlocoForm'
-import { DeleteBlocoButton } from '../rotina/DeleteBlocoButton'
-import { GradeScrollHint } from '../rotina/GradeScrollHint'
-import type { Area, Habit, RotinaBloco } from '@/lib/supabase/types'
+import { CompromissoForm } from '../compromissos/CompromissoForm'
+import { DeleteCompromissoButton } from '../compromissos/DeleteCompromissoButton'
+import { CompromissoFeitoToggle } from '../compromissos/CompromissoFeitoToggle'
+import type { Area, Habit, Compromisso } from '@/lib/supabase/types'
 import styles from './page.module.css'
-import rotinaStyles from '../rotina/page.module.css'
+import compromissosStyles from '../compromissos/page.module.css'
 
 export const metadata: Metadata = {
   title: 'Rotina e Hábitos',
 }
 
-type Secao = 'habitos' | 'rotina'
-
-const DIAS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
-
-// Grade em blocos de 30 minutos. Se não houver dados, mostra 06:00–22:00;
-// se algum bloco cair fora dessa faixa, a grade se estende para caber nele.
-const DEFAULT_START_HOUR = 6
-const DEFAULT_END_HOUR = 22
-const SLOT_MINUTES = 30
+type Secao = 'habitos' | 'compromissos'
 
 /**
  * Janela de 3 dias (pelo relógio do servidor) só pra garantir que o dia
@@ -35,70 +27,18 @@ function janelaRecente() {
   return new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10)
 }
 
-function toMinutes(hora: string): number {
-  const [h, m] = hora.split(':').map(Number)
-  return h * 60 + (m || 0)
+/** "Hoje" pelo relógio do servidor — mesma simplificação já usada em
+ *  outras telas (ex: /hoje, mês do Financeiro). */
+function hojeISO() {
+  return new Date().toISOString().slice(0, 10)
 }
 
 function formatHora(hora: string): string {
   return hora.slice(0, 5)
 }
 
-type LayoutInfo = { lane: number; lanes: number }
-
-/**
- * Blocos que se sobrepõem no mesmo dia ganham "lanes" (colunas) lado a lado,
- * como num calendário: agrupa em clusters de sobreposição transitiva
- * (varrendo por hora_inicio, fechando o cluster quando um bloco começa
- * depois do fim máximo já visto) e, dentro de cada cluster, atribui a cada
- * bloco a primeira lane livre (cujo último fim já é <= o início do bloco).
- */
-function calcularLayoutSobreposicao(blocos: RotinaBloco[]): Map<string, LayoutInfo> {
-  const layout = new Map<string, LayoutInfo>()
-
-  for (let dia = 0; dia < 7; dia++) {
-    const doDia = blocos
-      .filter((b) => b.dia_semana === dia)
-      .sort((a, b) => toMinutes(a.hora_inicio) - toMinutes(b.hora_inicio))
-
-    let clusterAtual: RotinaBloco[] = []
-    let clusterFimMax = -Infinity
-    const clusters: RotinaBloco[][] = []
-    for (const b of doDia) {
-      const inicio = toMinutes(b.hora_inicio)
-      if (clusterAtual.length > 0 && inicio >= clusterFimMax) {
-        clusters.push(clusterAtual)
-        clusterAtual = []
-        clusterFimMax = -Infinity
-      }
-      clusterAtual.push(b)
-      clusterFimMax = Math.max(clusterFimMax, toMinutes(b.hora_fim))
-    }
-    if (clusterAtual.length > 0) clusters.push(clusterAtual)
-
-    for (const cluster of clusters) {
-      const fimPorLane: number[] = []
-      const lanePorBloco = new Map<string, number>()
-      for (const b of cluster) {
-        const inicio = toMinutes(b.hora_inicio)
-        const fim = toMinutes(b.hora_fim)
-        let lane = fimPorLane.findIndex((fimLane) => fimLane <= inicio)
-        if (lane === -1) {
-          lane = fimPorLane.length
-          fimPorLane.push(fim)
-        } else {
-          fimPorLane[lane] = fim
-        }
-        lanePorBloco.set(b.id, lane)
-      }
-      const lanes = fimPorLane.length
-      for (const b of cluster) {
-        layout.set(b.id, { lane: lanePorBloco.get(b.id)!, lanes })
-      }
-    }
-  }
-
-  return layout
+function formatDataBR(data: string): string {
+  return data.split('-').reverse().join('/')
 }
 
 export default async function RotinaHabitosPage({
@@ -107,7 +47,7 @@ export default async function RotinaHabitosPage({
   searchParams: Promise<{ secao?: string; edit?: string }>
 }) {
   const { secao: secaoParam, edit } = await searchParams
-  const secao: Secao = secaoParam === 'rotina' ? 'rotina' : 'habitos'
+  const secao: Secao = secaoParam === 'compromissos' ? 'compromissos' : 'habitos'
   const supabase = await createSupabaseServerClient()
   const {
     data: { user },
@@ -117,20 +57,22 @@ export default async function RotinaHabitosPage({
     redirect('/login')
   }
 
-  const [{ data: habitsData }, { data: areasData }, { data: blocosData }] = await Promise.all([
+  const [{ data: habitsData }, { data: areasData }, { data: compromissosData }] = await Promise.all([
     supabase
       .from('habits')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
-    // Busca todas as áreas (não só as ativas): um hábito/bloco pode estar
-    // vinculado a uma área já arquivada, e precisamos do nome dela pra
-    // exibir o rótulo "(arquivada)" em vez de simplesmente não mostrar nada.
+    // Busca todas as áreas (não só as ativas): um hábito/compromisso pode
+    // estar vinculado a uma área já arquivada, e precisamos do nome dela
+    // pra exibir o rótulo "(arquivada)" em vez de simplesmente não mostrar
+    // nada.
     supabase.from('areas').select('*').eq('user_id', user.id).order('ordem', { ascending: true }),
     supabase
-      .from('rotina_diaria')
+      .from('compromissos')
       .select('*')
       .eq('user_id', user.id)
+      .order('data', { ascending: true })
       .order('hora_inicio', { ascending: true }),
   ])
 
@@ -138,7 +80,7 @@ export default async function RotinaHabitosPage({
   const todasAreas = (areasData ?? []) as Area[]
   const areasAtivas = todasAreas.filter((a) => !a.arquivada)
   const areaById = new Map(todasAreas.map((a) => [a.id, a]))
-  const blocos = (blocosData ?? []) as RotinaBloco[]
+  const compromissos = (compromissosData ?? []) as Compromisso[]
 
   const habitIds = habits.map((h) => h.id)
   const { data: logsData } =
@@ -168,19 +110,10 @@ export default async function RotinaHabitosPage({
       : null
   const areasParaForm = areaAtualArquivada ? [...areasAtivas, areaAtualArquivada] : areasAtivas
 
-  const editingBloco = secao === 'rotina' && edit ? blocos.find((b) => b.id === edit) ?? null : null
+  const editingCompromisso =
+    secao === 'compromissos' && edit ? compromissos.find((c) => c.id === edit) ?? null : null
 
-  const minutosExtremos = blocos.flatMap((b) => [toMinutes(b.hora_inicio), toMinutes(b.hora_fim)])
-  const startHour = Math.min(DEFAULT_START_HOUR, ...minutosExtremos.map((m) => Math.floor(m / 60)))
-  const endHour = Math.max(DEFAULT_END_HOUR, ...minutosExtremos.map((m) => Math.ceil(m / 60)))
-  const totalSlots = (endHour - startHour) * (60 / SLOT_MINUTES)
-
-  function slotDe(hora: string): number {
-    return (toMinutes(hora) - startHour * 60) / SLOT_MINUTES
-  }
-
-  const horasLabel = Array.from({ length: endHour - startHour }, (_, i) => startHour + i)
-  const layoutSobreposicao = calcularLayoutSobreposicao(blocos)
+  const hoje = hojeISO()
 
   return (
     <div className={styles.page}>
@@ -195,8 +128,8 @@ export default async function RotinaHabitosPage({
         <Link href="/habitos" className={secao === 'habitos' ? styles.tabActive : styles.tab}>
           Hábitos
         </Link>
-        <Link href="/habitos?secao=rotina" className={secao === 'rotina' ? styles.tabActive : styles.tab}>
-          Rotina semanal
+        <Link href="/habitos?secao=compromissos" className={secao === 'compromissos' ? styles.tabActive : styles.tab}>
+          Compromissos
         </Link>
       </div>
 
@@ -253,135 +186,56 @@ export default async function RotinaHabitosPage({
         </>
       ) : (
         <>
-          <section className={rotinaStyles.card}>
-            <h2 className={rotinaStyles.cardTitle}>{editingBloco ? 'Editar bloco' : 'Novo bloco'}</h2>
-            <BlocoForm key={editingBloco?.id ?? 'new'} bloco={editingBloco} areas={areasAtivas} />
+          <section className={compromissosStyles.card}>
+            <h2 className={compromissosStyles.cardTitle}>
+              {editingCompromisso ? 'Editar compromisso' : 'Novo compromisso'}
+            </h2>
+            <CompromissoForm key={editingCompromisso?.id ?? 'new'} compromisso={editingCompromisso} areas={areasAtivas} />
           </section>
 
-          <section className={rotinaStyles.gridSection}>
-            {blocos.length === 0 ? (
-              <p className={rotinaStyles.empty}>Nenhum bloco cadastrado ainda. Crie o primeiro acima.</p>
+          <section className={compromissosStyles.section}>
+            <h2 className={compromissosStyles.sectionTitle}>Todos os compromissos</h2>
+            {compromissos.length === 0 ? (
+              <p className={compromissosStyles.empty}>Nenhum compromisso cadastrado ainda. Crie o primeiro acima.</p>
             ) : (
-              <GradeScrollHint>
-                <div
-                  className={rotinaStyles.grid}
-                  style={{
-                    gridTemplateColumns: `3.25rem repeat(7, minmax(6.5rem, 1fr))`,
-                    gridTemplateRows: `2rem repeat(${totalSlots}, 1.4rem)`,
-                  }}
-                >
-                  {/* Cabeçalho dos dias */}
-                  {DIAS.map((dia, i) => (
-                    <div
-                      key={dia}
-                      className={rotinaStyles.dayHeader}
-                      style={{ gridColumn: i + 2, gridRow: 1 }}
-                    >
-                      {dia}
-                    </div>
-                  ))}
-
-                  {/* Rótulos de hora */}
-                  {horasLabel.map((hora, i) => (
-                    <div
-                      key={hora}
-                      className={rotinaStyles.hourLabel}
-                      style={{
-                        gridColumn: 1,
-                        gridRow: `${i * 2 + 2} / span 2`,
-                      }}
-                    >
-                      {String(hora).padStart(2, '0')}h
-                    </div>
-                  ))}
-
-                  {/* Linhas de grade horizontais (uma por hora cheia) */}
-                  {horasLabel.map((hora, i) => (
-                    <div
-                      key={`linha-${hora}`}
-                      className={rotinaStyles.hourLine}
-                      style={{ gridColumn: '2 / -1', gridRow: i * 2 + 2 }}
-                    />
-                  ))}
-
-                  {/* Blocos */}
-                  {blocos.map((bloco) => {
-                    const area = bloco.area_id ? areaById.get(bloco.area_id) : null
-                    const rowStart = Math.floor(slotDe(bloco.hora_inicio)) + 2
-                    const rowEnd = Math.ceil(slotDe(bloco.hora_fim)) + 2
-                    const { lane, lanes } = layoutSobreposicao.get(bloco.id) ?? { lane: 0, lanes: 1 }
-                    const larguraPct = 100 / lanes
-                    return (
-                      <div
-                        key={bloco.id}
-                        data-dia-semana={bloco.dia_semana}
-                        data-testid="bloco-rotina"
-                        className={rotinaStyles.bloco}
-                        style={{
-                          gridColumn: bloco.dia_semana + 2,
-                          gridRow: `${rowStart} / ${rowEnd}`,
-                          width: `calc(${larguraPct}% - 4px)`,
-                          marginLeft: `calc(${larguraPct * lane}% + 2px)`,
-                          background: area ? `${area.cor}26` : 'rgba(124, 106, 247, 0.15)',
-                          borderColor: area ? area.cor : 'rgba(124, 106, 247, 0.5)',
-                        }}
-                      >
-                        <div className={rotinaStyles.blocoAtividade}>{bloco.atividade}</div>
-                        <div className={rotinaStyles.blocoHora}>
-                          {formatHora(bloco.hora_inicio)}–{formatHora(bloco.hora_fim)}
+              <ul className={compromissosStyles.list}>
+                {compromissos.map((c) => {
+                  const area = c.area_id ? areaById.get(c.area_id) : null
+                  const isHoje = c.data === hoje
+                  const jaPassou = c.data < hoje
+                  return (
+                    <li key={c.id} className={compromissosStyles.item}>
+                      <div className={compromissosStyles.itemInfo}>
+                        <span
+                          className={compromissosStyles.swatch}
+                          style={{ background: area ? area.cor : 'rgba(255,255,255,0.25)' }}
+                        />
+                        <div>
+                          <div className={isHoje ? compromissosStyles.itemNomeNegrito : compromissosStyles.itemNome}>
+                            {c.atividade}
+                          </div>
+                          <div className={compromissosStyles.itemMeta}>
+                            {formatDataBR(c.data)} · {formatHora(c.hora_inicio)}–{formatHora(c.hora_fim)}
+                            {area ? ` · ${area.icone} ${area.nome}` : ''}
+                          </div>
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              </GradeScrollHint>
+                      <div className={compromissosStyles.itemActions}>
+                        {jaPassou && <CompromissoFeitoToggle id={c.id} feito={c.feito} />}
+                        <Link
+                          href={`/habitos?secao=compromissos&edit=${c.id}`}
+                          className={compromissosStyles.editLink}
+                        >
+                          Editar
+                        </Link>
+                        <DeleteCompromissoButton id={c.id} atividade={c.atividade} />
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
             )}
           </section>
-
-          {/* A grade é só visual — como blocos curtos não têm espaço pra ações,
-              a edição/exclusão fica nesta lista abaixo, agrupada por dia. */}
-          {blocos.length > 0 && (
-            <section className={rotinaStyles.section}>
-              <h2 className={rotinaStyles.sectionTitle}>Todos os blocos</h2>
-              {DIAS.map((dia, diaIdx) => {
-                const blocosDoDia = blocos.filter((b) => b.dia_semana === diaIdx)
-                if (blocosDoDia.length === 0) return null
-                return (
-                  <div key={dia} className={rotinaStyles.diaGrupo}>
-                    <h3 className={rotinaStyles.diaGrupoTitle}>{dia}</h3>
-                    <ul className={rotinaStyles.list}>
-                      {blocosDoDia.map((bloco) => {
-                        const area = bloco.area_id ? areaById.get(bloco.area_id) : null
-                        return (
-                          <li key={bloco.id} className={rotinaStyles.item}>
-                            <div className={rotinaStyles.itemInfo}>
-                              <span
-                                className={rotinaStyles.swatch}
-                                style={{ background: area ? area.cor : 'rgba(255,255,255,0.25)' }}
-                              />
-                              <div>
-                                <div className={rotinaStyles.itemNome}>{bloco.atividade}</div>
-                                <div className={rotinaStyles.itemMeta}>
-                                  {formatHora(bloco.hora_inicio)}–{formatHora(bloco.hora_fim)}
-                                  {area ? ` · ${area.icone} ${area.nome}` : ''}
-                                </div>
-                              </div>
-                            </div>
-                            <div className={rotinaStyles.itemActions}>
-                              <Link href={`/habitos?secao=rotina&edit=${bloco.id}`} className={rotinaStyles.editLink}>
-                                Editar
-                              </Link>
-                              <DeleteBlocoButton id={bloco.id} atividade={bloco.atividade} />
-                            </div>
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </div>
-                )
-              })}
-            </section>
-          )}
         </>
       )}
     </div>

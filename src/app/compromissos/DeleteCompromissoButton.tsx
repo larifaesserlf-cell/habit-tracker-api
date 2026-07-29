@@ -1,16 +1,16 @@
 'use client'
 
 import { useTransition } from 'react'
-import { deleteBloco } from '@/actions/rotina'
+import { deleteCompromisso } from '@/actions/compromissos'
 import styles from './page.module.css'
 
-export function DeleteBlocoButton({ id, atividade }: { id: string; atividade: string }) {
+export function DeleteCompromissoButton({ id, atividade }: { id: string; atividade: string }) {
   const [isPending, startTransition] = useTransition()
 
   function handleClick() {
-    if (!window.confirm(`Excluir o bloco "${atividade}"? Essa ação não pode ser desfeita.`)) return
+    if (!window.confirm(`Excluir o compromisso "${atividade}"? Essa ação não pode ser desfeita.`)) return
     startTransition(() => {
-      deleteBloco(id)
+      deleteCompromisso(id)
     })
   }
 

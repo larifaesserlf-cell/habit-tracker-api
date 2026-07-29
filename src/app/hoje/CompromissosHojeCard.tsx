@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import type { Area, RotinaBloco } from '@/lib/supabase/types'
+import type { Area, Compromisso } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 const DIAS_LABEL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
@@ -15,45 +15,55 @@ function minutosDe(hora: string) {
   return h * 60 + (m || 0)
 }
 
+/** Data de hoje no fuso do navegador, em "YYYY-MM-DD" (não usa
+ *  toISOString(), que é UTC e pode cair no dia errado perto da meia-noite). */
+function hojeLocalISO(agora: Date): string {
+  const ano = agora.getFullYear()
+  const mes = String(agora.getMonth() + 1).padStart(2, '0')
+  const dia = String(agora.getDate()).padStart(2, '0')
+  return `${ano}-${mes}-${dia}`
+}
+
 /**
  * Client Component: dia da semana e horário "agora" precisam vir do fuso do
  * navegador, não do servidor. Sem compromisso hoje, o bloco inteiro some da
  * página (sem mensagem de "vazio").
  */
 export function CompromissosHojeCard({
-  blocos,
+  compromissos,
   areaPorId,
 }: {
-  blocos: RotinaBloco[]
+  compromissos: Compromisso[]
   areaPorId: Map<string, Area>
 }) {
   const agora = new Date()
+  const hoje = hojeLocalISO(agora)
   const diaSemana = agora.getDay()
   const minutosAgora = agora.getHours() * 60 + agora.getMinutes()
 
-  const blocosHoje = blocos
-    .filter((b) => b.dia_semana === diaSemana)
+  const compromissosHoje = compromissos
+    .filter((c) => c.data === hoje)
     .sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio))
 
-  if (blocosHoje.length === 0) return null
+  if (compromissosHoje.length === 0) return null
 
   return (
     <section className={styles.card}>
       <div className={styles.cardHeader}>
         <h2 className={styles.cardTitle}>Compromissos do dia ({DIAS_LABEL[diaSemana]})</h2>
-        <Link href="/habitos?secao=rotina" className={styles.verTudoLink}>
-          Ver semana completa →
+        <Link href="/habitos?secao=compromissos" className={styles.verTudoLink}>
+          Ver todos →
         </Link>
       </div>
 
       <ul className={styles.list}>
-        {blocosHoje.map((b) => {
-          const area = b.area_id ? areaPorId.get(b.area_id) : null
+        {compromissosHoje.map((c) => {
+          const area = c.area_id ? areaPorId.get(c.area_id) : null
           const agoraAtivo =
-            minutosAgora >= minutosDe(b.hora_inicio) && minutosAgora < minutosDe(b.hora_fim)
+            minutosAgora >= minutosDe(c.hora_inicio) && minutosAgora < minutosDe(c.hora_fim)
           return (
             <li
-              key={b.id}
+              key={c.id}
               className={agoraAtivo ? styles.itemAgora : styles.item}
               style={area ? { borderLeftColor: area.cor } : undefined}
             >
@@ -61,10 +71,10 @@ export function CompromissosHojeCard({
                 <div>
                   <div className={styles.itemNome}>
                     {agoraAtivo && <span className={styles.agoraBadge}>AGORA</span>}
-                    {b.atividade}
+                    {c.atividade}
                   </div>
                   <div className={styles.itemMeta}>
-                    {formatHora(b.hora_inicio)}–{formatHora(b.hora_fim)}
+                    {formatHora(c.hora_inicio)}–{formatHora(c.hora_fim)}
                     {area ? ` · ${area.icone} ${area.nome}` : ''}
                   </div>
                 </div>
