@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { ContaForm } from './ContaForm'
 import { DeleteContaButton } from './DeleteContaButton'
 import { TransacaoForm } from './TransacaoForm'
@@ -229,9 +230,7 @@ export default async function FinanceiroPage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/hoje" className={styles.backLink}>
-          ← Painel
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>Financeiro</h1>
         <Link href="/financeiro/investimentos" className={styles.statsLink}>
           Ver investimentos →

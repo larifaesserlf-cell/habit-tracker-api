@@ -10,6 +10,7 @@ import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { CompromissoForm } from '../compromissos/CompromissoForm'
 import { DeleteCompromissoButton } from '../compromissos/DeleteCompromissoButton'
 import { CompromissoFeitoToggle } from '../compromissos/CompromissoFeitoToggle'
+import { BackNav } from '@/components/BackNav'
 import type { Area, Habit, Compromisso } from '@/lib/supabase/types'
 import { labelArea } from '@/lib/areaLabel'
 import styles from './page.module.css'
@@ -230,9 +231,7 @@ export default async function RotinaHabitosPage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/hoje" className={styles.backLink}>
-          ← Painel
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>Rotina e Hábitos</h1>
       </div>
 

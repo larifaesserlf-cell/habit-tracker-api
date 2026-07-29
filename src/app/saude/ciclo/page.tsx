@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { RegistroDiarioForm } from './RegistroDiarioForm'
 import { CicloEmAndamentoCard } from './CicloEmAndamentoCard'
 import { CicloForm } from './CicloForm'
@@ -85,9 +85,7 @@ export default async function CicloPage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/hoje" className={styles.backLink}>
-          ← Painel
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>Ciclo Menstrual</h1>
       </div>
 

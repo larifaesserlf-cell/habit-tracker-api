@@ -212,9 +212,6 @@ export default async function HojePage() {
           <p className={styles.subtitle}>Logado como {user.email}</p>
         </div>
         <nav className={styles.nav}>
-          <Link href="/hoje" className={styles.navLink}>
-            Início
-          </Link>
           <Link href="/habitos" className={styles.navLink}>
             Rotina e Hábitos
           </Link>

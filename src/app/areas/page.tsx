@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { setAreaArquivada } from '@/actions/areas'
 import { AreaForm } from './AreaForm'
 import { ArchiveAreaButton } from './ArchiveAreaButton'
@@ -42,9 +43,7 @@ export default async function AreasPage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/hoje" className={styles.backLink}>
-          ← Painel
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>Áreas</h1>
       </div>
 

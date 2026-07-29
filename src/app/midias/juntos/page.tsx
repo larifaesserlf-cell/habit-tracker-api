@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { CriarListaForm } from './CriarListaForm'
 import type { ListaWatch } from '@/lib/supabase/types'
 import styles from './page.module.css'
@@ -36,9 +37,7 @@ export default async function ListasWatchPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/midias" className={styles.backLink}>
-          ← Mídias
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>🎬 Assistir juntos</h1>
       </div>
 

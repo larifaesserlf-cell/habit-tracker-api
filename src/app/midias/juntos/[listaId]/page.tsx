@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { setItemWatchStatus } from '@/actions/listasWatch'
 import { ItemWatchForm } from './ItemWatchForm'
 import { DeleteItemWatchButton } from './DeleteItemWatchButton'
@@ -71,9 +72,7 @@ export default async function ListaWatchPage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/midias/juntos" className={styles.backLink}>
-          ← Listas
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>🎬 {listaTyped.nome}</h1>
       </div>
 

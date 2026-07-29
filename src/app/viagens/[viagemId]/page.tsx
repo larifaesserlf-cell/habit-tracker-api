@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { moveDestino } from '@/actions/destinos'
 import { ViagemForm } from '../ViagemForm'
 import { DestinoForm } from './DestinoForm'
@@ -64,9 +65,7 @@ export default async function ViagemDetalhePage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/viagens" className={styles.backLink}>
-          ← Viagens
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>{viagem.nome}</h1>
         <Link href={`/viagens/${viagemId}/transportes`} className={styles.subLink}>
           Transportes →

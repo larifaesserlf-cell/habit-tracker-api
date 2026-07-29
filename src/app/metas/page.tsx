@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { setMetaStatus } from '@/actions/metas'
 import { MetaForm } from './MetaForm'
 import { DeleteMetaButton } from './DeleteMetaButton'
@@ -111,9 +112,7 @@ export default async function MetasPage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href="/hoje" className={styles.backLink}>
-          ← Painel
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>Metas</h1>
       </div>
 

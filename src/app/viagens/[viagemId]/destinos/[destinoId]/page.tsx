@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { BackNav } from '@/components/BackNav'
 import { setPontoStatus } from '@/actions/pontosInteresse'
 import { toggleReservado } from '@/actions/hospedagens'
 import { DestinoForm } from '../../DestinoForm'
@@ -19,7 +20,6 @@ import type {
   PontoInteresse,
   PontoInteressePrioridade,
   Transporte,
-  Viagem,
 } from '@/lib/supabase/types'
 import styles from '../../../page.module.css'
 
@@ -62,7 +62,6 @@ export default async function DestinoDetalhePage({
     .eq('user_id', user.id)
     .maybeSingle()
   if (!viagemData) notFound()
-  const viagem = viagemData as Viagem
 
   const { data: destinoData } = await supabase
     .from('destinos')
@@ -101,9 +100,7 @@ export default async function DestinoDetalhePage({
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <Link href={`/viagens/${viagemId}`} className={styles.backLink}>
-          ← {viagem.nome}
-        </Link>
+        <BackNav />
         <h1 className={styles.title}>
           {destino.nome_cidade}
           {destino.pais ? `, ${destino.pais}` : ''}
