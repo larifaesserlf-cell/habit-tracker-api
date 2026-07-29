@@ -4,8 +4,9 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { HabitForm } from './HabitForm'
 import { DeleteHabitButton } from './DeleteHabitButton'
+import { HabitosConclusaoChart } from './HabitosConclusaoChart'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
-import { labelFrequencia } from '@/lib/habitFrequencia'
+import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { CompromissoForm } from '../compromissos/CompromissoForm'
 import { DeleteCompromissoButton } from '../compromissos/DeleteCompromissoButton'
 import { CompromissoFeitoToggle } from '../compromissos/CompromissoFeitoToggle'
@@ -43,12 +44,96 @@ function formatDataBR(data: string): string {
   return data.split('-').reverse().join('/')
 }
 
+/** Mês atual (relógio do servidor) em "YYYY-MM". */
+function mesAtualISO(): string {
+  const agora = new Date()
+  return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** Valida o parâmetro `?mes=`; se ausente/inválido, cai no mês atual. */
+function mesValido(mes: string | undefined): string {
+  return mes && /^\d{4}-\d{2}$/.test(mes) ? mes : mesAtualISO()
+}
+
+/** Primeiro e último dia do mês informado ("YYYY-MM"), em ISO (YYYY-MM-DD). */
+function faixaDoMes(mesISO: string) {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const inicio = new Date(Date.UTC(ano, mes - 1, 1))
+  const fim = new Date(Date.UTC(ano, mes, 0))
+  return { inicio: inicio.toISOString().slice(0, 10), fim: fim.toISOString().slice(0, 10) }
+}
+
+/** Desloca um mês ("YYYY-MM") por `delta` meses (pode ser negativo). */
+function deslocarMes(mesISO: string, delta: number): string {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const totalMeses = mes - 1 + delta
+  const novoAno = ano + Math.floor(totalMeses / 12)
+  const novoMes = (((totalMeses % 12) + 12) % 12) + 1
+  return `${novoAno}-${String(novoMes).padStart(2, '0')}`
+}
+
+/** Nome do mês por extenso em pt-BR, ex: "Agosto de 2026". */
+function nomeMes(mesISO: string): string {
+  const [ano, mes] = mesISO.split('-').map(Number)
+  const nome = new Date(Date.UTC(ano, mes - 1, 1)).toLocaleDateString('pt-BR', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  return nome.charAt(0).toUpperCase() + nome.slice(1)
+}
+
+function hrefComMes(mes: string): string {
+  return `/habitos?mes=${mes}`
+}
+
+/** Um dia depois da data ISO informada. */
+function somarUmDia(dataISO: string): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  return new Date(Date.UTC(ano, mes - 1, dia + 1)).toISOString().slice(0, 10)
+}
+
+/**
+ * % de conclusão de cada hábito no mês: dias em que foi marcado "feito"
+ * dividido pelos dias em que ele deveria ter sido feito (considerando a
+ * frequência e a data de criação do hábito), limitado a hoje quando o mês
+ * selecionado é o atual — dias futuros não contam contra o hábito.
+ */
+function calcularConclusaoDoMes(
+  habits: Habit[],
+  diasFeitosPorHabito: Map<string, Set<string>>,
+  inicioMes: string,
+  fimEfetivo: string
+): { nome: string; percentual: number }[] {
+  const resultado: { nome: string; percentual: number }[] = []
+
+  for (const habit of habits) {
+    const criadoEm = habit.created_at.slice(0, 10)
+    let devidos = 0
+    let feitos = 0
+    const diasFeitos = diasFeitosPorHabito.get(habit.id)
+
+    for (let dia = inicioMes; dia <= fimEfetivo; dia = somarUmDia(dia)) {
+      if (dia < criadoEm) continue
+      if (!habitoApareceEm(habit, dia)) continue
+      devidos++
+      if (diasFeitos?.has(dia)) feitos++
+    }
+
+    if (devidos > 0) {
+      resultado.push({ nome: habit.nome, percentual: Math.round((feitos / devidos) * 100) })
+    }
+  }
+
+  return resultado
+}
+
 export default async function RotinaHabitosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ secao?: string; edit?: string }>
+  searchParams: Promise<{ secao?: string; edit?: string; mes?: string }>
 }) {
-  const { secao: secaoParam, edit } = await searchParams
+  const { secao: secaoParam, edit, mes } = await searchParams
   const secao: Secao = secaoParam === 'compromissos' ? 'compromissos' : 'habitos'
   const supabase = await createSupabaseServerClient()
   const {
@@ -100,6 +185,31 @@ export default async function RotinaHabitosPage({
     lista.push({ data: log.data, status: log.status })
     logsByHabit.set(log.habit_id, lista)
   }
+
+  const mesSelecionado = mesValido(mes)
+  const { inicio: inicioMes, fim: fimMes } = faixaDoMes(mesSelecionado)
+  const estaNoMesAtual = mesSelecionado === mesAtualISO()
+  const fimEfetivo = estaNoMesAtual ? [fimMes, hojeISO()].sort()[0] : fimMes
+
+  const { data: logsMesData } =
+    habitIds.length > 0
+      ? await supabase
+          .from('habit_logs')
+          .select('habit_id, data')
+          .eq('status', true)
+          .gte('data', inicioMes)
+          .lte('data', fimMes)
+          .in('habit_id', habitIds)
+      : { data: [] as { habit_id: string; data: string }[] }
+
+  const diasFeitosPorHabito = new Map<string, Set<string>>()
+  for (const log of logsMesData ?? []) {
+    const set = diasFeitosPorHabito.get(log.habit_id) ?? new Set<string>()
+    set.add(log.data)
+    diasFeitosPorHabito.set(log.habit_id, set)
+  }
+
+  const conclusaoDoMes = calcularConclusaoDoMes(habits, diasFeitosPorHabito, inicioMes, fimEfetivo)
 
   const editingHabit = secao === 'habitos' && edit ? habits.find((h) => h.id === edit) ?? null : null
 
@@ -185,6 +295,24 @@ export default async function RotinaHabitosPage({
                 )
               })}
             </ul>
+          </section>
+
+          <section className={styles.card}>
+            <div className={styles.mesNav}>
+              <Link href={hrefComMes(deslocarMes(mesSelecionado, -1))} className={styles.mesNavArrow} aria-label="Mês anterior">
+                ←
+              </Link>
+              <h2 className={styles.cardTitle}>Conclusão de {nomeMes(mesSelecionado)}</h2>
+              <Link href={hrefComMes(deslocarMes(mesSelecionado, 1))} className={styles.mesNavArrow} aria-label="Próximo mês">
+                →
+              </Link>
+            </div>
+            <HabitosConclusaoChart dados={conclusaoDoMes} />
+            {!estaNoMesAtual && (
+              <Link href="/habitos" className={styles.voltarMesAtual}>
+                ← Voltar pro mês atual
+              </Link>
+            )}
           </section>
         </>
       ) : (
