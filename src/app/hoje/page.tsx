@@ -4,12 +4,12 @@ import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/actions/auth'
 import { setMetaStatus } from '@/actions/metas'
-import { RotinaHojeCard } from './RotinaHojeCard'
+import { CompromissosHojeCard } from './CompromissosHojeCard'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
 import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { calcularProgressoMeta } from '@/lib/metaProgresso'
-import { VIAGEM_STATUS_LABEL } from '../viagens/constants'
-import type { Area, Habit, Meta, RotinaBloco, Viagem } from '@/lib/supabase/types'
+import { GastosPorCategoriaChart } from '../financeiro/GastosPorCategoriaChart'
+import type { Area, Destino, Habit, Meta, RotinaBloco, Transacao, Viagem } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -37,6 +37,16 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
+/** Primeiro e último dia do mês atual (relógio do servidor), em ISO. */
+function faixaMesAtual() {
+  const agora = new Date()
+  const ano = agora.getFullYear()
+  const mes = agora.getMonth() + 1
+  const inicio = new Date(Date.UTC(ano, mes - 1, 1)).toISOString().slice(0, 10)
+  const fim = new Date(Date.UTC(ano, mes, 0)).toISOString().slice(0, 10)
+  return { inicio, fim }
+}
+
 /** Metas com data_alvo mais próxima primeiro; sem data_alvo, mais recentes por último. */
 function ordenarMetasFoco(metas: Meta[]): Meta[] {
   const comData = [...metas]
@@ -48,34 +58,30 @@ function ordenarMetasFoco(metas: Meta[]): Meta[] {
   return [...comData, ...semData].slice(0, 5)
 }
 
-/**
- * Viagem em foco: entre as não concluídas, prioriza a com
- * data_prevista_inicio mais próxima; se nenhuma tiver data, a mais
- * recente criada.
- */
-function escolherProximaViagem(viagens: Viagem[]): Viagem | null {
-  const naoConcluidas = viagens.filter((v) => v.status !== 'concluida')
-  const comData = naoConcluidas
+/** Soma o valor das despesas do mês por categoria, maior primeiro. */
+function agruparDespesasPorCategoria(transacoes: Transacao[]): { categoria: string; valor: number }[] {
+  const valorPorCategoria = new Map<string, number>()
+  for (const t of transacoes) {
+    if (t.tipo !== 'despesa') continue
+    valorPorCategoria.set(t.categoria, (valorPorCategoria.get(t.categoria) ?? 0) + t.valor)
+  }
+  return Array.from(valorPorCategoria, ([categoria, valor]) => ({ categoria, valor })).sort(
+    (a, b) => b.valor - a.valor
+  )
+}
+
+/** Viagem cujo período previsto cruza com o mês atual (início/fim do mês em
+ *  ISO); entre várias, a que começa mais cedo. */
+function escolherViagemDoMes(viagens: Viagem[], inicioMes: string, fimMes: string): Viagem | null {
+  const candidatas = viagens
     .filter((v) => v.data_prevista_inicio)
+    .filter((v) => {
+      const inicio = v.data_prevista_inicio!
+      const fim = v.data_prevista_fim ?? inicio
+      return inicio <= fimMes && fim >= inicioMes
+    })
     .sort((a, b) => (a.data_prevista_inicio! < b.data_prevista_inicio! ? -1 : 1))
-  if (comData.length > 0) return comData[0]
-
-  const semData = [...naoConcluidas].sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-  return semData[0] ?? null
-}
-
-/** Dias entre hoje e a data prevista (negativo = já começou/passou). */
-function diasAte(data: string): number {
-  const hoje = new Date().toISOString().slice(0, 10)
-  const msPorDia = 24 * 60 * 60 * 1000
-  return Math.round((Date.parse(data) - Date.parse(hoje)) / msPorDia)
-}
-
-function formatContagem(dias: number): string {
-  if (dias > 1) return `faltam ${dias} dias`
-  if (dias === 1) return 'começa amanhã'
-  if (dias === 0) return 'começa hoje!'
-  return `em andamento (começou há ${-dias} dia${dias === -1 ? '' : 's'})`
+  return candidatas[0] ?? null
 }
 
 export default async function HojePage() {
@@ -88,12 +94,15 @@ export default async function HojePage() {
     redirect('/login')
   }
 
+  const { inicio: inicioMes, fim: fimMes } = faixaMesAtual()
+
   const [
     { data: areasData },
     { data: rotinaData },
     { data: habitsData },
     { data: metasData },
     { data: viagensData },
+    { data: transacoesData },
   ] = await Promise.all([
     // Todas as áreas (não só ativas): hábitos/metas/rotina podem estar
     // vinculados a uma área já arquivada, e ainda queremos mostrar o nome
@@ -103,6 +112,12 @@ export default async function HojePage() {
     supabase.from('habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase.from('metas').select('*').eq('status', 'ativa'),
     supabase.from('viagens').select('*').eq('user_id', user.id),
+    supabase
+      .from('transacoes')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('data', inicioMes)
+      .lte('data', fimMes),
   ])
 
   const areas = (areasData ?? []) as Area[]
@@ -112,7 +127,18 @@ export default async function HojePage() {
   const habitoPorId = new Map(habits.map((h) => [h.id, h]))
   const metas = (metasData ?? []) as Meta[]
   const viagens = (viagensData ?? []) as Viagem[]
-  const proximaViagem = escolherProximaViagem(viagens)
+  const transacoesDoMes = (transacoesData ?? []) as Transacao[]
+  const gastosPorCategoria = agruparDespesasPorCategoria(transacoesDoMes)
+  const viagemDoMes = escolherViagemDoMes(viagens, inicioMes, fimMes)
+
+  const { data: destinosData } = viagemDoMes
+    ? await supabase
+        .from('destinos')
+        .select('*')
+        .eq('viagem_id', viagemDoMes.id)
+        .order('ordem', { ascending: true })
+    : { data: [] as Destino[] }
+  const cidadesViagemDoMes = ((destinosData ?? []) as Destino[]).map((d) => d.nome_cidade).join(', ')
 
   const habitIds = habits.map((h) => h.id)
   const { data: logsData } =
@@ -198,7 +224,7 @@ export default async function HojePage() {
         </form>
       </div>
 
-      <RotinaHojeCard blocos={rotina} areaPorId={areaPorId} />
+      <CompromissosHojeCard blocos={rotina} areaPorId={areaPorId} />
 
       <section className={styles.card}>
         <div className={styles.cardHeader}>
@@ -294,24 +320,34 @@ export default async function HojePage() {
         )}
       </section>
 
-      {proximaViagem && (
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>Gastos do mês</h2>
+          <Link href="/financeiro" className={styles.verTudoLink}>
+            Ver financeiro →
+          </Link>
+        </div>
+        <GastosPorCategoriaChart dados={gastosPorCategoria} />
+      </section>
+
+      {viagemDoMes && (
         <section className={styles.card}>
           <div className={styles.cardHeader}>
-            <h2 className={styles.cardTitle}>Próxima viagem</h2>
+            <h2 className={styles.cardTitle}>Viagem do mês</h2>
             <Link href="/viagens" className={styles.verTudoLink}>
               Ver todas →
             </Link>
           </div>
           <div className={styles.itemInfo}>
             <div>
-              <div className={styles.itemNome}>{proximaViagem.nome}</div>
+              <div className={styles.itemNome}>{viagemDoMes.nome}</div>
               <div className={styles.itemMeta}>
-                {VIAGEM_STATUS_LABEL[proximaViagem.status]}
-                {proximaViagem.data_prevista_inicio &&
-                  ` · ${formatContagem(diasAte(proximaViagem.data_prevista_inicio))}`}
+                {viagemDoMes.data_prevista_inicio && formatDataBR(viagemDoMes.data_prevista_inicio)}
+                {viagemDoMes.data_prevista_fim && ` – ${formatDataBR(viagemDoMes.data_prevista_fim)}`}
+                {cidadesViagemDoMes && ` · ${cidadesViagemDoMes}`}
               </div>
             </div>
-            <Link href={`/viagens/${proximaViagem.id}`} className={styles.verTudoLink}>
+            <Link href={`/viagens/${viagemDoMes.id}`} className={styles.verTudoLink}>
               Abrir viagem →
             </Link>
           </div>
