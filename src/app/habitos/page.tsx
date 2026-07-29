@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { HabitForm } from './HabitForm'
+import { DeleteHabitButton } from './DeleteHabitButton'
 import { HabitCheckInButton } from '@/components/HabitCheckInButton'
 import { labelFrequencia } from '@/lib/habitFrequencia'
 import { CompromissoForm } from '../compromissos/CompromissoForm'
@@ -178,6 +179,7 @@ export default async function RotinaHabitosPage({
                       <Link href={`/habitos?edit=${habit.id}`} className={styles.editLink}>
                         Editar
                       </Link>
+                      <DeleteHabitButton id={habit.id} nome={habit.nome} />
                     </div>
                   </li>
                 )

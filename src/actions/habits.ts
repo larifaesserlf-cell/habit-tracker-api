@@ -102,3 +102,19 @@ export async function toggleCheckIn(habitId: string, date: string, nextStatus: b
 
   revalidatePath('/habitos')
 }
+
+/**
+ * Exclui o hábito definitivamente. O histórico de check-ins (habit_logs)
+ * some junto por causa do "on delete cascade" na foreign key.
+ */
+export async function deleteHabit(id: string) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  await supabase.from('habits').delete().eq('id', id).eq('user_id', user.id)
+  revalidatePath('/habitos')
+  revalidatePath('/hoje')
+}
