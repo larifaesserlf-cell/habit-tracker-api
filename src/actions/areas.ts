@@ -19,7 +19,7 @@ export async function saveArea(
   const id = (formData.get('id') as string | null) || null
   const nome = (formData.get('nome') as string | null)?.trim() ?? ''
   const cor = (formData.get('cor') as string | null)?.trim() || '#7c6af7'
-  const icone = (formData.get('icone') as string | null)?.trim() || '🔥'
+  const icone = (formData.get('icone') as string | null)?.trim() || ''
   const ordem = Number(formData.get('ordem') ?? 0) || 0
 
   if (nome.length < 2) {

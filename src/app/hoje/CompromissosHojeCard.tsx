@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import type { Area, Compromisso } from '@/lib/supabase/types'
+import { labelArea } from '@/lib/areaLabel'
 import styles from './page.module.css'
 
 const DIAS_LABEL = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
@@ -75,7 +76,7 @@ export function CompromissosHojeCard({
                   </div>
                   <div className={styles.itemMeta}>
                     {formatHora(c.hora_inicio)}–{formatHora(c.hora_fim)}
-                    {area ? ` · ${area.icone} ${area.nome}` : ''}
+                    {area ? ` · ${labelArea(area)}` : ''}
                   </div>
                 </div>
               </div>

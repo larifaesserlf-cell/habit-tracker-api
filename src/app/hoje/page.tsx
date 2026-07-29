@@ -9,6 +9,7 @@ import { HabitCheckInButton } from '@/components/HabitCheckInButton'
 import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { calcularProgressoMeta } from '@/lib/metaProgresso'
 import { GastosPorCategoriaChart } from '../financeiro/GastosPorCategoriaChart'
+import { labelArea } from '@/lib/areaLabel'
 import type { Area, Compromisso, Destino, Habit, Meta, Transacao, Viagem } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
@@ -267,7 +268,7 @@ export default async function HojePage() {
                         {area && (
                           <>
                             {' · '}
-                            {area.icone} {area.nome}
+                            {labelArea(area)}
                             {area.arquivada && (
                               <span className={styles.areaArquivadaLabel}> (arquivada)</span>
                             )}
@@ -309,7 +310,7 @@ export default async function HojePage() {
                     <div>
                       <div className={styles.itemNome}>{m.titulo}</div>
                       <div className={styles.itemMeta}>
-                        {area ? `${area.icone} ${area.nome}` : ''}
+                        {area ? labelArea(area) : ''}
                         {m.data_alvo ? ` · até ${formatDataBR(m.data_alvo)}` : ''}
                       </div>
                       {progresso !== null && (

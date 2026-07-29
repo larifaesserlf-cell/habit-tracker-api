@@ -31,7 +31,7 @@ export function AreaForm({ area }: { area: Area | null }) {
   // não-controlados de um <form action={...}> depois de QUALQUER submissão,
   // inclusive quando a action retorna erro — sem isso, o texto digitado
   // some junto com a mensagem de validação.
-  const [icone, setIcone] = useState(area?.icone ?? '🔥')
+  const [icone, setIcone] = useState(area?.icone ?? '')
   const [cor, setCor] = useState(area?.cor ?? CORES[0].valor)
   const [nome, setNome] = useState(area?.nome ?? '')
   const [ordem, setOrdem] = useState(String(area?.ordem ?? 0))
@@ -46,7 +46,7 @@ export function AreaForm({ area }: { area: Area | null }) {
   if (state.status !== statusAnterior) {
     setStatusAnterior(state.status)
     if (state.status === 'success' && !area) {
-      setIcone('🔥')
+      setIcone('')
       setCor(CORES[0].valor)
       setNome('')
       setOrdem('0')
@@ -72,8 +72,15 @@ export function AreaForm({ area }: { area: Area | null }) {
 
       <div className={styles.formRow}>
         <div className={styles.fieldSmall}>
-          <label htmlFor="icone">Ícone</label>
-          <input id="icone" name="icone" value={icone} onChange={(e) => setIcone(e.target.value)} maxLength={4} />
+          <label htmlFor="icone">Ícone (opcional)</label>
+          <input
+            id="icone"
+            name="icone"
+            value={icone}
+            onChange={(e) => setIcone(e.target.value)}
+            placeholder="Ex: 📚"
+            maxLength={4}
+          />
         </div>
         <div className={styles.field}>
           <label>Cor</label>
@@ -90,6 +97,14 @@ export function AreaForm({ area }: { area: Area | null }) {
                 onClick={() => setCor(c.valor)}
               />
             ))}
+            <input
+              type="color"
+              value={cor}
+              onChange={(e) => setCor(e.target.value)}
+              className={styles.corManual}
+              title="Escolher outra cor manualmente"
+              aria-label="Escolher outra cor manualmente"
+            />
           </div>
         </div>
         <div className={styles.fieldGrow}>

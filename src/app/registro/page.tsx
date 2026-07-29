@@ -50,7 +50,7 @@ function RegistroForm() {
       <div className={styles.card}>
         {/* Cabeçalho */}
         <div className={styles.header}>
-          <div className={styles.logo}>🔥</div>
+          <div className={styles.logo}>🧭</div>
           <h1 className={styles.title}>Criar conta</h1>
           <p className={styles.subtitle}>
             Comece a rastrear seus hábitos hoje

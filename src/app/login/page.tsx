@@ -77,7 +77,7 @@ function LoginForm() {
       <div className={styles.card}>
         {/* Cabeçalho */}
         <div className={styles.header}>
-          <div className={styles.logo}>🔥</div>
+          <div className={styles.logo}>🧭</div>
           <h1 className={styles.title}>Entrar</h1>
           <p className={styles.subtitle}>Bem-vindo de volta</p>
         </div>

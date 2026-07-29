@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { saveHabit, type HabitFormState } from '@/actions/habits'
 import { DIAS_SEMANA } from '@/lib/habitFrequencia'
 import type { Area, Frequencia, Habit } from '@/lib/supabase/types'
+import { labelArea } from '@/lib/areaLabel'
 import styles from './page.module.css'
 
 const initialState: HabitFormState = { status: 'idle' }
@@ -116,7 +117,7 @@ export function HabitForm({ habit, areas }: { habit: Habit | null; areas: Area[]
             <option value="">Sem área</option>
             {areas.map((area) => (
               <option key={area.id} value={area.id}>
-                {area.icone} {area.nome}
+                {labelArea(area)}
                 {area.arquivada ? ' (arquivada)' : ''}
               </option>
             ))}

@@ -9,6 +9,7 @@ import { CompromissoForm } from '../compromissos/CompromissoForm'
 import { DeleteCompromissoButton } from '../compromissos/DeleteCompromissoButton'
 import { CompromissoFeitoToggle } from '../compromissos/CompromissoFeitoToggle'
 import type { Area, Habit, Compromisso } from '@/lib/supabase/types'
+import { labelArea } from '@/lib/areaLabel'
 import styles from './page.module.css'
 import compromissosStyles from '../compromissos/page.module.css'
 
@@ -158,7 +159,7 @@ export default async function RotinaHabitosPage({
                           {area && (
                             <>
                               {' · '}
-                              {area.icone} {area.nome}
+                              {labelArea(area)}
                               {area.arquivada && (
                                 <span className={styles.areaArquivadaLabel}> (arquivada)</span>
                               )}
@@ -216,7 +217,7 @@ export default async function RotinaHabitosPage({
                           </div>
                           <div className={compromissosStyles.itemMeta}>
                             {formatDataBR(c.data)} · {formatHora(c.hora_inicio)}–{formatHora(c.hora_fim)}
-                            {area ? ` · ${area.icone} ${area.nome}` : ''}
+                            {area ? ` · ${labelArea(area)}` : ''}
                           </div>
                         </div>
                       </div>

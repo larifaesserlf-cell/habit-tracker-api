@@ -12,7 +12,7 @@ export default function Home() {
     <div className={styles.page}>
       <main className={styles.main}>
         <div className={styles.hero}>
-          <span className={styles.emoji}>🔥</span>
+          <span className={styles.emoji}>🧭</span>
           <h1 className={styles.heading}>Habit Tracker</h1>
           <p className={styles.tagline}>
             Rastreie hábitos, construa streaks e transforme sua rotina.

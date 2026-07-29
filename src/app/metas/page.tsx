@@ -7,6 +7,7 @@ import { MetaForm } from './MetaForm'
 import { DeleteMetaButton } from './DeleteMetaButton'
 import { calcularProgressoMeta } from '@/lib/metaProgresso'
 import type { Area, Habit, Meta, MetaStatus } from '@/lib/supabase/types'
+import { labelArea } from '@/lib/areaLabel'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -138,7 +139,7 @@ export default async function MetasPage({
         return (
           <section key={area.id} className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              {area.icone} {area.nome}
+              {labelArea(area)}
               {area.arquivada ? ' (arquivada)' : ''}
             </h2>
             {metasDaArea.length === 0 ? (

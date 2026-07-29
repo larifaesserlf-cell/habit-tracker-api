@@ -228,6 +228,32 @@
   transform: scale(1.1);
 }
 
+/* Especificidade extra (duas classes) pra vencer ".form input", que senão
+   estica esse input[type=color] pra 100% de largura como os outros campos. */
+.corRow .corManual {
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.corManual::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.corManual::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.corManual:hover {
+  transform: scale(1.1);
+}
+
 .form input:focus,
 .form select:focus {
   border-color: #7c6af7;

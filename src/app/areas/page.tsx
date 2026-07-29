@@ -6,6 +6,7 @@ import { setAreaArquivada } from '@/actions/areas'
 import { AreaForm } from './AreaForm'
 import { ArchiveAreaButton } from './ArchiveAreaButton'
 import type { Area } from '@/lib/supabase/types'
+import { labelArea } from '@/lib/areaLabel'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -63,7 +64,7 @@ export default async function AreasPage({
               <div className={styles.itemInfo}>
                 <span className={styles.swatch} style={{ background: area.cor }} />
                 <span className={styles.itemNome}>
-                  {area.icone} {area.nome}
+                  {labelArea(area)}
                 </span>
               </div>
               <div className={styles.itemActions}>
@@ -86,7 +87,7 @@ export default async function AreasPage({
                 <div className={styles.itemInfo}>
                   <span className={styles.swatch} style={{ background: area.cor }} />
                   <span className={styles.itemNome}>
-                    {area.icone} {area.nome}
+                    {labelArea(area)}
                   </span>
                 </div>
                 <form action={setAreaArquivada.bind(null, area.id, false)}>

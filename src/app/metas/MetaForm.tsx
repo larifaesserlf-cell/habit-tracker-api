@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { saveMeta, type MetaFormState } from '@/actions/metas'
 import type { Area, Habit, Meta, MetaStatus, MetaTipo } from '@/lib/supabase/types'
+import { labelArea } from '@/lib/areaLabel'
 import styles from './page.module.css'
 
 const initialState: MetaFormState = { status: 'idle' }
@@ -111,7 +112,7 @@ export function MetaForm({ meta, areas, habitos }: { meta: Meta | null; areas: A
             </option>
             {areas.map((area) => (
               <option key={area.id} value={area.id}>
-                {area.icone} {area.nome}
+                {labelArea(area)}
               </option>
             ))}
           </select>
