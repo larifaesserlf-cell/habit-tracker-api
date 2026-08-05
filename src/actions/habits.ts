@@ -104,6 +104,40 @@ export async function toggleCheckIn(habitId: string, date: string, nextStatus: b
 }
 
 /**
+ * Marca/desmarca o check-in de um hábito numa data qualquer (retroativo
+ * incluso) — tri-state: `true` (feito), `false` (não feito) ou `null`
+ * (volta ao neutro, sem log nenhum pra aquele dia). Diferente de
+ * `toggleCheckIn` (usado em /hoje, sempre grava true/false), esta ação
+ * também apaga a linha quando o novo estado é `null`.
+ */
+export async function setCheckIn(habitId: string, date: string, status: boolean | null) {
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return
+
+  const { data: habit } = await supabase
+    .from('habits')
+    .select('id')
+    .eq('id', habitId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!habit) return
+
+  if (status === null) {
+    await supabase.from('habit_logs').delete().eq('habit_id', habitId).eq('data', date)
+  } else {
+    await supabase
+      .from('habit_logs')
+      .upsert({ habit_id: habitId, data: date, status }, { onConflict: 'habit_id,data' })
+  }
+
+  revalidatePath('/habitos')
+  revalidatePath('/hoje')
+}
+
+/**
  * Exclui o hábito definitivamente. O histórico de check-ins (habit_logs)
  * some junto por causa do "on delete cascade" na foreign key.
  */

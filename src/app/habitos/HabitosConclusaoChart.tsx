@@ -1,21 +1,6 @@
 import styles from './page.module.css'
 
-/** Mesma paleta usada nos outros gráficos do app (ex: "Por categoria" do
- *  Financeiro), ciclando pelas 10 cores conforme o número de hábitos. */
-const CORES = [
-  '#7c6af7',
-  '#f87171',
-  '#fb923c',
-  '#fbbf24',
-  '#4ade80',
-  '#2dd4bf',
-  '#38bdf8',
-  '#f472b6',
-  '#a78bfa',
-  '#94a3b8',
-]
-
-type ConclusaoHabito = { nome: string; percentual: number }
+type ConclusaoHabito = { nome: string; percentualFeito: number; percentualNaoFeito: number }
 
 export function HabitosConclusaoChart({ dados }: { dados: ConclusaoHabito[] }) {
   if (dados.length === 0) {
@@ -23,21 +8,35 @@ export function HabitosConclusaoChart({ dados }: { dados: ConclusaoHabito[] }) {
   }
 
   return (
-    <ul className={styles.conclusaoList}>
-      {dados.map((d, i) => (
-        <li key={d.nome} className={styles.conclusaoItem}>
-          <div className={styles.conclusaoHeader}>
-            <span className={styles.conclusaoNome}>{d.nome}</span>
-            <span className={styles.conclusaoPct}>{d.percentual}%</span>
+    <div>
+      <div className={styles.grupoChartRow}>
+        {dados.map((d) => (
+          <div key={d.nome} className={styles.grupoCluster}>
+            <div className={styles.grupoBars}>
+              <div className={styles.grupoBarTrack}>
+                <div className={styles.grupoBarFeito} style={{ height: `${d.percentualFeito}%` }} />
+              </div>
+              <div className={styles.grupoBarTrack}>
+                <div className={styles.grupoBarNaoFeito} style={{ height: `${d.percentualNaoFeito}%` }} />
+              </div>
+            </div>
+            <div className={styles.grupoPercentuais}>
+              <span className={styles.grupoPctFeito}>{d.percentualFeito}%</span>
+              <span className={styles.grupoPctNaoFeito}>{d.percentualNaoFeito}%</span>
+            </div>
+            <div className={styles.grupoNome}>{d.nome}</div>
           </div>
-          <div className={styles.conclusaoBarTrack}>
-            <div
-              className={styles.conclusaoBarFill}
-              style={{ width: `${d.percentual}%`, background: CORES[i % CORES.length] }}
-            />
-          </div>
-        </li>
-      ))}
-    </ul>
+        ))}
+      </div>
+
+      <div className={styles.chartLegenda}>
+        <span className={styles.legendaItem}>
+          <span className={`${styles.legendaSwatch} ${styles.legendaSwatchVerde}`} /> Feito
+        </span>
+        <span className={styles.legendaItem}>
+          <span className={`${styles.legendaSwatch} ${styles.legendaSwatchVermelho}`} /> Não feito
+        </span>
+      </div>
+    </div>
   )
 }

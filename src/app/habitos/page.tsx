@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { HabitForm } from './HabitForm'
 import { DeleteHabitButton } from './DeleteHabitButton'
 import { HabitosConclusaoChart } from './HabitosConclusaoChart'
-import { HabitCheckInButton } from '@/components/HabitCheckInButton'
+import { CheckInCell } from './CheckInCell'
 import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { CompromissoForm } from '../compromissos/CompromissoForm'
 import { DeleteCompromissoButton } from '../compromissos/DeleteCompromissoButton'
@@ -21,15 +21,6 @@ export const metadata: Metadata = {
 }
 
 type Secao = 'habitos' | 'compromissos'
-
-/**
- * Janela de 3 dias (pelo relógio do servidor) só pra garantir que o dia
- * "de hoje" do navegador do usuário — calculado no HabitCheckInButton,
- * client-side — esteja incluído mesmo perto da virada da meia-noite.
- */
-function janelaRecente() {
-  return new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10)
-}
 
 /** "Hoje" pelo relógio do servidor — mesma simplificação já usada em
  *  outras telas (ex: /hoje, mês do Financeiro). */
@@ -84,45 +75,130 @@ function nomeMes(mesISO: string): string {
   return nome.charAt(0).toUpperCase() + nome.slice(1)
 }
 
-function hrefComMes(mes: string): string {
-  return `/habitos?mes=${mes}`
-}
-
 /** Um dia depois da data ISO informada. */
 function somarUmDia(dataISO: string): string {
-  const [ano, mes, dia] = dataISO.split('-').map(Number)
-  return new Date(Date.UTC(ano, mes - 1, dia + 1)).toISOString().slice(0, 10)
+  return deslocarDias(dataISO, 1)
 }
 
+/** Desloca uma data ISO por `n` dias (pode ser negativo). */
+function deslocarDias(dataISO: string, n: number): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  return new Date(Date.UTC(ano, mes - 1, dia + n)).toISOString().slice(0, 10)
+}
+
+/** Domingo (início) da semana que contém a data informada. */
+function domingoDaSemana(dataISO: string): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  const diaSemana = new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay()
+  return deslocarDias(dataISO, -diaSemana)
+}
+
+/** Valida o parâmetro `?semana=`; se ausente/inválido, cai na semana atual.
+ *  Sempre normalizado pro domingo daquela semana. */
+function semanaValida(semana: string | undefined): string {
+  const base = semana && /^\d{4}-\d{2}-\d{2}$/.test(semana) ? semana : hojeISO()
+  return domingoDaSemana(base)
+}
+
+/** Os 7 dias (domingo a sábado) da semana que começa em `domingoISO`. */
+function diasDaSemana(domingoISO: string): string[] {
+  return Array.from({ length: 7 }, (_, i) => deslocarDias(domingoISO, i))
+}
+
+const DIA_SEMANA_ABREV = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+function abrevDiaSemana(dataISO: string): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  return DIA_SEMANA_ABREV[new Date(Date.UTC(ano, mes - 1, dia)).getUTCDay()]
+}
+
+function labelDiaCurto(dataISO: string): string {
+  const [, mes, dia] = dataISO.split('-')
+  return `${dia}/${mes}`
+}
+
+/** Monta a URL de /habitos preservando mês e semana selecionados. */
+function hrefHabitos(params: { mes?: string; semana?: string; edit?: string }): string {
+  const sp = new URLSearchParams()
+  if (params.mes) sp.set('mes', params.mes)
+  if (params.semana) sp.set('semana', params.semana)
+  if (params.edit) sp.set('edit', params.edit)
+  const query = sp.toString()
+  return query ? `/habitos?${query}` : '/habitos'
+}
+
+type ConclusaoHabito = { nome: string; percentualFeito: number; percentualNaoFeito: number }
+
 /**
- * % de conclusão de cada hábito no mês: dias em que foi marcado "feito"
- * dividido pelos dias em que ele deveria ter sido feito (considerando a
- * frequência e a data de criação do hábito), limitado a hoje quando o mês
- * selecionado é o atual — dias futuros não contam contra o hábito.
+ * % de conclusão de cada hábito no mês, considerando exceções pontuais
+ * (item 4 do pedido): um hábito marcado como feito num dia fora da sua
+ * frequência configurada, na mesma semana (domingo–sábado) de um dia
+ * programado ainda "não feito", compensa esse dia em falta — não soma dia
+ * extra ao total. Se não houver dia em falta pra compensar naquela semana,
+ * a marcação extra soma como dia adicional (no numerador e no denominador).
+ *
+ * Dias programados sem resposta (pendentes) não entram nem no "feito" nem
+ * no "não feito" — só contam pro denominador comum das duas porcentagens.
  */
 function calcularConclusaoDoMes(
   habits: Habit[],
-  diasFeitosPorHabito: Map<string, Set<string>>,
+  logsMesPorHabito: Map<string, Map<string, boolean>>,
   inicioMes: string,
   fimEfetivo: string
-): { nome: string; percentual: number }[] {
-  const resultado: { nome: string; percentual: number }[] = []
+): ConclusaoHabito[] {
+  const resultado: ConclusaoHabito[] = []
 
   for (const habit of habits) {
     const criadoEm = habit.created_at.slice(0, 10)
-    let devidos = 0
-    let feitos = 0
-    const diasFeitos = diasFeitosPorHabito.get(habit.id)
+    const logs = logsMesPorHabito.get(habit.id) ?? new Map<string, boolean>()
+
+    type DiaInfo = { scheduled: boolean; log: boolean | undefined }
+    const porSemana = new Map<string, DiaInfo[]>()
 
     for (let dia = inicioMes; dia <= fimEfetivo; dia = somarUmDia(dia)) {
       if (dia < criadoEm) continue
-      if (!habitoApareceEm(habit, dia)) continue
-      devidos++
-      if (diasFeitos?.has(dia)) feitos++
+      const scheduled = habitoApareceEm(habit, dia)
+      const log = logs.get(dia)
+      // Dias não programados só interessam ao cálculo quando marcados como
+      // feito (exceção pontual) — sem marcação, não entram em lugar nenhum.
+      if (!scheduled && log !== true) continue
+      const semana = domingoDaSemana(dia)
+      const lista = porSemana.get(semana) ?? []
+      lista.push({ scheduled, log })
+      porSemana.set(semana, lista)
+    }
+
+    let devidos = 0
+    let feitos = 0
+    let naoFeitos = 0
+
+    for (const dias of porSemana.values()) {
+      const programados = dias.filter((d) => d.scheduled)
+      const extras = dias.filter((d) => !d.scheduled && d.log === true)
+      const vagasNaoFeito = programados.filter((d) => d.log === false).length
+      let compensados = 0
+
+      for (let i = 0; i < extras.length; i++) {
+        if (compensados < vagasNaoFeito) {
+          compensados++
+        } else {
+          // Exceção sem dia em falta pra compensar: vira slot adicional.
+          devidos++
+          feitos++
+        }
+      }
+
+      devidos += programados.length
+      feitos += programados.filter((d) => d.log === true).length + compensados
+      naoFeitos += vagasNaoFeito - compensados
     }
 
     if (devidos > 0) {
-      resultado.push({ nome: habit.nome, percentual: Math.round((feitos / devidos) * 100) })
+      resultado.push({
+        nome: habit.nome,
+        percentualFeito: Math.round((feitos / devidos) * 100),
+        percentualNaoFeito: Math.round((naoFeitos / devidos) * 100),
+      })
     }
   }
 
@@ -132,9 +208,9 @@ function calcularConclusaoDoMes(
 export default async function RotinaHabitosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ secao?: string; edit?: string; mes?: string }>
+  searchParams: Promise<{ secao?: string; edit?: string; mes?: string; semana?: string }>
 }) {
-  const { secao: secaoParam, edit, mes } = await searchParams
+  const { secao: secaoParam, edit, mes, semana } = await searchParams
   const secao: Secao = secaoParam === 'compromissos' ? 'compromissos' : 'habitos'
   const supabase = await createSupabaseServerClient()
   const {
@@ -169,24 +245,31 @@ export default async function RotinaHabitosPage({
   const areasAtivas = todasAreas.filter((a) => !a.arquivada)
   const areaById = new Map(todasAreas.map((a) => [a.id, a]))
   const compromissos = (compromissosData ?? []) as Compromisso[]
-
   const habitIds = habits.map((h) => h.id)
-  const { data: logsData } =
+
+  // ── Semana exibida na grade de check-in ──────────────────────────────
+  const semanaSelecionada = semanaValida(semana)
+  const diasSemanaArr = diasDaSemana(semanaSelecionada)
+  const estaNaSemanaAtual = semanaSelecionada === domingoDaSemana(hojeISO())
+
+  const { data: logsSemanaData } =
     habitIds.length > 0
       ? await supabase
           .from('habit_logs')
           .select('habit_id, data, status')
-          .gte('data', janelaRecente())
+          .gte('data', diasSemanaArr[0])
+          .lte('data', diasSemanaArr[6])
           .in('habit_id', habitIds)
       : { data: [] as { habit_id: string; data: string; status: boolean }[] }
 
-  const logsByHabit = new Map<string, { data: string; status: boolean }[]>()
-  for (const log of logsData ?? []) {
-    const lista = logsByHabit.get(log.habit_id) ?? []
-    lista.push({ data: log.data, status: log.status })
-    logsByHabit.set(log.habit_id, lista)
+  const logsSemanaPorHabito = new Map<string, Map<string, boolean>>()
+  for (const log of logsSemanaData ?? []) {
+    const m = logsSemanaPorHabito.get(log.habit_id) ?? new Map<string, boolean>()
+    m.set(log.data, log.status)
+    logsSemanaPorHabito.set(log.habit_id, m)
   }
 
+  // ── Mês exibido no gráfico de conclusão ──────────────────────────────
   const mesSelecionado = mesValido(mes)
   const { inicio: inicioMes, fim: fimMes } = faixaDoMes(mesSelecionado)
   const estaNoMesAtual = mesSelecionado === mesAtualISO()
@@ -196,21 +279,20 @@ export default async function RotinaHabitosPage({
     habitIds.length > 0
       ? await supabase
           .from('habit_logs')
-          .select('habit_id, data')
-          .eq('status', true)
+          .select('habit_id, data, status')
           .gte('data', inicioMes)
           .lte('data', fimMes)
           .in('habit_id', habitIds)
-      : { data: [] as { habit_id: string; data: string }[] }
+      : { data: [] as { habit_id: string; data: string; status: boolean }[] }
 
-  const diasFeitosPorHabito = new Map<string, Set<string>>()
+  const logsMesPorHabito = new Map<string, Map<string, boolean>>()
   for (const log of logsMesData ?? []) {
-    const set = diasFeitosPorHabito.get(log.habit_id) ?? new Set<string>()
-    set.add(log.data)
-    diasFeitosPorHabito.set(log.habit_id, set)
+    const m = logsMesPorHabito.get(log.habit_id) ?? new Map<string, boolean>()
+    m.set(log.data, log.status)
+    logsMesPorHabito.set(log.habit_id, m)
   }
 
-  const conclusaoDoMes = calcularConclusaoDoMes(habits, diasFeitosPorHabito, inicioMes, fimEfetivo)
+  const conclusaoDoMes = calcularConclusaoDoMes(habits, logsMesPorHabito, inicioMes, fimEfetivo)
 
   const editingHabit = secao === 'habitos' && edit ? habits.find((h) => h.id === edit) ?? null : null
 
@@ -251,64 +333,126 @@ export default async function RotinaHabitosPage({
             <HabitForm key={editingHabit?.id ?? 'new'} habit={editingHabit} areas={areasParaForm} />
           </section>
 
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Check-in de hoje</h2>
-            {habits.length === 0 && (
+          <section className={`${styles.card} ${styles.checkInCard}`}>
+            <div className={styles.mesNav}>
+              <Link
+                href={hrefHabitos({ mes: mesSelecionado, semana: deslocarDias(semanaSelecionada, -7) })}
+                className={styles.mesNavArrow}
+                aria-label="Semana anterior"
+              >
+                ←
+              </Link>
+              <h2 className={styles.cardTitle}>
+                Check-in de {labelDiaCurto(diasSemanaArr[0])} a {labelDiaCurto(diasSemanaArr[6])}
+              </h2>
+              <Link
+                href={hrefHabitos({ mes: mesSelecionado, semana: deslocarDias(semanaSelecionada, 7) })}
+                className={styles.mesNavArrow}
+                aria-label="Próxima semana"
+              >
+                →
+              </Link>
+            </div>
+
+            {habits.length === 0 ? (
               <p className={styles.empty}>Nenhum hábito cadastrado ainda. Crie o primeiro acima.</p>
-            )}
-            <ul className={styles.list}>
-              {habits.map((habit) => {
-                const area = habit.area_id ? areaById.get(habit.area_id) : null
-                return (
-                  <li key={habit.id} className={styles.item}>
-                    <div className={styles.itemInfo}>
-                      <div>
-                        <div className={styles.itemNome}>{habit.nome}</div>
-                        <div className={styles.itemMeta}>
-                          {labelFrequencia(habit)}
-                          {area && (
-                            <>
-                              {' · '}
-                              {labelArea(area)}
-                              {area.arquivada && (
-                                <span className={styles.areaArquivadaLabel}> (arquivada)</span>
+            ) : (
+              <div className={styles.checkInScroll}>
+                <table className={styles.checkInTable}>
+                  <thead>
+                    <tr>
+                      <th className={styles.checkInHabitoCol}>Hábito</th>
+                      {diasSemanaArr.map((dia) => (
+                        <th key={dia} className={styles.checkInDiaCol}>
+                          <div className={styles.checkInDiaData}>{labelDiaCurto(dia)}</div>
+                          <div className={styles.checkInDiaSemana}>{abrevDiaSemana(dia)}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {habits.map((habit) => {
+                      const area = habit.area_id ? areaById.get(habit.area_id) : null
+                      const logsHabito = logsSemanaPorHabito.get(habit.id) ?? new Map<string, boolean>()
+                      const criadoEm = habit.created_at.slice(0, 10)
+                      return (
+                        <tr key={habit.id}>
+                          <td className={styles.checkInHabitoCol}>
+                            <div className={styles.itemNome}>{habit.nome}</div>
+                            <div className={styles.itemMeta}>
+                              {labelFrequencia(habit)}
+                              {area && (
+                                <>
+                                  {' · '}
+                                  {labelArea(area)}
+                                  {area.arquivada && (
+                                    <span className={styles.areaArquivadaLabel}> (arquivada)</span>
+                                  )}
+                                </>
                               )}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={styles.itemActions}>
-                      <HabitCheckInButton
-                        habitId={habit.id}
-                        logsRecentes={logsByHabit.get(habit.id) ?? []}
-                        doneClassName={styles.checkDone}
-                        pendingClassName={styles.checkPending}
-                      />
-                      <Link href={`/habitos?edit=${habit.id}`} className={styles.editLink}>
-                        Editar
-                      </Link>
-                      <DeleteHabitButton id={habit.id} nome={habit.nome} />
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
+                            </div>
+                            <div className={styles.itemActions}>
+                              <Link href={hrefHabitos({ mes: mesSelecionado, semana: semanaSelecionada, edit: habit.id })} className={styles.editLink}>
+                                Editar
+                              </Link>
+                              <DeleteHabitButton id={habit.id} nome={habit.nome} />
+                            </div>
+                          </td>
+                          {diasSemanaArr.map((dia) => {
+                            if (dia < criadoEm) {
+                              return (
+                                <td key={dia} className={styles.checkInDiaCol}>
+                                  <span className={styles.checkInIndisponivel}>—</span>
+                                </td>
+                              )
+                            }
+                            return (
+                              <td key={dia} className={styles.checkInDiaCol}>
+                                <CheckInCell
+                                  habitId={habit.id}
+                                  date={dia}
+                                  status={logsHabito.get(dia) ?? null}
+                                  scheduled={habitoApareceEm(habit, dia)}
+                                />
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {!estaNaSemanaAtual && (
+              <Link href={hrefHabitos({ mes: mesSelecionado })} className={styles.voltarMesAtual}>
+                ← Voltar pra semana atual
+              </Link>
+            )}
           </section>
 
           <section className={styles.card}>
             <div className={styles.mesNav}>
-              <Link href={hrefComMes(deslocarMes(mesSelecionado, -1))} className={styles.mesNavArrow} aria-label="Mês anterior">
+              <Link
+                href={hrefHabitos({ mes: deslocarMes(mesSelecionado, -1), semana: semanaSelecionada })}
+                className={styles.mesNavArrow}
+                aria-label="Mês anterior"
+              >
                 ←
               </Link>
               <h2 className={styles.cardTitle}>Conclusão de {nomeMes(mesSelecionado)}</h2>
-              <Link href={hrefComMes(deslocarMes(mesSelecionado, 1))} className={styles.mesNavArrow} aria-label="Próximo mês">
+              <Link
+                href={hrefHabitos({ mes: deslocarMes(mesSelecionado, 1), semana: semanaSelecionada })}
+                className={styles.mesNavArrow}
+                aria-label="Próximo mês"
+              >
                 →
               </Link>
             </div>
             <HabitosConclusaoChart dados={conclusaoDoMes} />
             {!estaNoMesAtual && (
-              <Link href="/habitos" className={styles.voltarMesAtual}>
+              <Link href={hrefHabitos({ semana: semanaSelecionada })} className={styles.voltarMesAtual}>
                 ← Voltar pro mês atual
               </Link>
             )}
