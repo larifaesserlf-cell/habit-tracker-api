@@ -119,10 +119,7 @@ export default async function FinanceiroPage({
       .filter((t) => t.tipo === tipoAlvo && t.status_pagamento === statusAlvo)
       .reduce((soma, t) => soma + t.valor, 0)
   }
-  const receitaRealizadaDoMes = somaPor('receita', 'pago')
-  const receitaPrevistaDoMes = somaPor('receita', 'pendente')
   const despesaRealizadaDoMes = somaPor('despesa', 'pago')
-  const despesaPrevistaDoMes = somaPor('despesa', 'pendente')
 
   // Saldo de cada conta = saldo inicial + receitas pagas - despesas pagas
   // (transações pendentes não contam até o status virar "pago").
@@ -295,26 +292,14 @@ export default async function FinanceiroPage({
             →
           </Link>
         </div>
-        <div className={styles.statsGrid}>
+        <div className={`${styles.statsGrid} ${styles.statsGridDuplo}`}>
           <div className={styles.statTile}>
             <div className={styles.statTileValue}>{formatMoeda(saldoTotalContas)}</div>
             <div className={styles.statTileLabel}>Saldo total das contas</div>
           </div>
-          <div className={`${styles.statTile} ${styles.statTilePositivo}`}>
-            <div className={styles.statTileValue}>{formatMoeda(receitaRealizadaDoMes)}</div>
-            <div className={styles.statTileLabel}>Receita realizada</div>
-          </div>
-          <div className={styles.statTile}>
-            <div className={styles.statTileValue}>{formatMoeda(receitaPrevistaDoMes)}</div>
-            <div className={styles.statTileLabel}>Receita prevista</div>
-          </div>
           <div className={`${styles.statTile} ${styles.statTileNegativo}`}>
             <div className={styles.statTileValue}>{formatMoeda(despesaRealizadaDoMes)}</div>
             <div className={styles.statTileLabel}>Despesa realizada</div>
-          </div>
-          <div className={styles.statTile}>
-            <div className={styles.statTileValue}>{formatMoeda(despesaPrevistaDoMes)}</div>
-            <div className={styles.statTileLabel}>Despesa prevista</div>
           </div>
         </div>
         {!estaNoMesAtual && (

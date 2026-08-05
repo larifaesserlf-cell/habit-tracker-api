@@ -162,6 +162,10 @@
   gap: 0.75rem;
 }
 
+.statsGridDuplo {
+  grid-template-columns: repeat(2, minmax(9rem, 16rem));
+}
+
 .statTile {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -179,10 +183,6 @@
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.5);
   margin-top: 0.25rem;
-}
-
-.statTilePositivo .statTileValue {
-  color: #86efac;
 }
 
 .statTileNegativo .statTileValue {
