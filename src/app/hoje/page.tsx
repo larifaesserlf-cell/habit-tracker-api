@@ -5,7 +5,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { signOut } from '@/actions/auth'
 import { setMetaStatus } from '@/actions/metas'
 import { CompromissosHojeCard } from './CompromissosHojeCard'
-import { HabitCheckInButton } from '@/components/HabitCheckInButton'
+import { HabitCheckInToggle } from '@/components/HabitCheckInToggle'
 import { habitoApareceEm, labelFrequencia } from '@/lib/habitFrequencia'
 import { calcularProgressoMeta } from '@/lib/metaProgresso'
 import { GastosPorCategoriaChart } from '../financeiro/GastosPorCategoriaChart'
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 /**
  * Janela de 3 dias (pelo relógio do servidor) só pra garantir que o dia
- * "de hoje" do navegador do usuário — calculado no HabitCheckInButton,
+ * "de hoje" do navegador do usuário — calculado no HabitCheckInToggle,
  * client-side, igual à rotina desta página — esteja incluído
  * mesmo perto da virada da meia-noite.
  */
@@ -274,12 +274,7 @@ export default async function HojePage() {
                       </div>
                     </div>
                   </div>
-                  <HabitCheckInButton
-                    habitId={h.id}
-                    logsRecentes={logsByHabit.get(h.id) ?? []}
-                    doneClassName={styles.checkDone}
-                    pendingClassName={styles.checkPending}
-                  />
+                  <HabitCheckInToggle habitId={h.id} logsRecentes={logsByHabit.get(h.id) ?? []} />
                 </li>
               )
             })}
