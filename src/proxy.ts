@@ -58,6 +58,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // manifest.json/sw.js excluídos pra instalabilidade do PWA funcionar
+    // sem depender de sessão logada (o Lighthouse e o próprio navegador
+    // buscam esses arquivos sem cookie de auth).
+    '/((?!_next/static|_next/image|favicon.ico|manifest\\.json|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
