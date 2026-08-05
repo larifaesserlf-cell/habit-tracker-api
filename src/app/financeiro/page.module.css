@@ -247,6 +247,120 @@
   font-weight: 400;
 }
 
+/* ── Fluxo de caixa: barras agrupadas receita/despesa por mês (CSS, não
+   recharts — recharts não desenha barra pra valor 0) ── */
+.fluxoBarsRow {
+  display: flex;
+  gap: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.fluxoCluster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 4.5rem;
+}
+
+.fluxoBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  height: 7.5rem;
+}
+
+.fluxoBarTrack {
+  width: 1.1rem;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.fluxoBarReceita,
+.fluxoBarDespesa {
+  width: 100%;
+  border-radius: 0.25rem 0.25rem 0 0;
+  transition: height 0.2s;
+  min-height: 2px;
+}
+
+.fluxoBarReceita {
+  background: #4ade80;
+}
+
+.fluxoBarDespesa {
+  background: #f87171;
+}
+
+.fluxoMesLabel {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+}
+
+.chartLegenda {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.legendaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.78rem;
+}
+
+.legendaSwatch {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+}
+
+.legendaSwatchVerde {
+  background: #4ade80;
+}
+
+.legendaSwatchVermelho {
+  background: #f87171;
+}
+
+/* ── Insights automáticos ── */
+.insightsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.insightItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.insightIcone {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  line-height: 1.4;
+}
+
 /* ── Filtros ── */
 .filtros {
   display: flex;
