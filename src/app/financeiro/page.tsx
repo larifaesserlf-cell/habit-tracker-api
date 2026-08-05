@@ -13,8 +13,11 @@ import { CategoriaChartTabs } from './CategoriaChartTabs'
 import { CollapsibleSection } from './CollapsibleSection'
 import { StatusPagamentoToggle } from './StatusPagamentoToggle'
 import { FaturaToggleButton } from './FaturaToggleButton'
+import { ConnectNubankButton } from './ConnectNubankButton'
+import { SincronizarButton } from './SincronizarButton'
+import { DeleteConnectionButton } from './DeleteConnectionButton'
 import { CONTA_TIPO_LABEL, formatMoeda, formatDataBR, iconeCategoria, calcularSaldoConta } from './constants'
-import type { ContaFinanceira, StatusPagamento, Transacao } from '@/lib/supabase/types'
+import type { BankConnection, ContaFinanceira, StatusPagamento, Transacao } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -89,7 +92,7 @@ export default async function FinanceiroPage({
     redirect('/login')
   }
 
-  const [{ data: contasData }, { data: transacoesData }] = await Promise.all([
+  const [{ data: contasData }, { data: transacoesData }, { data: conexoesData }] = await Promise.all([
     supabase
       .from('contas_financeiras')
       .select('*')
@@ -101,10 +104,17 @@ export default async function FinanceiroPage({
       .eq('user_id', user.id)
       .order('data', { ascending: false })
       .order('created_at', { ascending: false }),
+    supabase
+      .from('bank_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true }),
   ])
 
   const contas = (contasData ?? []) as ContaFinanceira[]
   const contaPorId = new Map(contas.map((c) => [c.id, c]))
+  const conexoesBancarias = (conexoesData ?? []) as BankConnection[]
+  const conexaoPorId = new Map(conexoesBancarias.map((c) => [c.id, c]))
   const transacoes = (transacoesData ?? []) as Transacao[]
 
   const mesSelecionado = mesValido(mes)
@@ -236,6 +246,41 @@ export default async function FinanceiroPage({
 
       <section className={styles.card}>
         <div className={styles.cardHeader}>
+          <h2 className={styles.cardTitle}>Bancos conectados</h2>
+        </div>
+
+        {conexoesBancarias.length > 0 && (
+          <ul className={styles.list}>
+            {conexoesBancarias.map((conexao) => (
+              <li key={conexao.id} className={styles.item}>
+                <div className={styles.itemInfo}>
+                  <div>
+                    <div className={styles.itemNome}>{conexao.institution_name}</div>
+                    <div className={styles.itemMeta}>
+                      {conexao.last_sync
+                        ? `Última sincronização: ${new Date(conexao.last_sync).toLocaleString('pt-BR')}`
+                        : 'Ainda não sincronizado'}
+                      {' · item '}
+                      {conexao.pluggy_item_id.slice(0, 8)}
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.itemActions}>
+                  <SincronizarButton connectionId={conexao.id} />
+                  <DeleteConnectionButton id={conexao.id} institutionName={conexao.institution_name} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div style={{ marginTop: conexoesBancarias.length > 0 ? '1rem' : 0 }}>
+          <ConnectNubankButton />
+        </div>
+      </section>
+
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
           <h2 className={styles.cardTitle}>Contas</h2>
         </div>
 
@@ -245,7 +290,15 @@ export default async function FinanceiroPage({
               <li key={c.id} className={styles.item}>
                 <div className={styles.itemInfo}>
                   <div>
-                    <div className={styles.itemNome}>{c.nome}</div>
+                    <div className={styles.itemNome}>
+                      {c.nome}
+                      {c.origem === 'pluggy' && (
+                        <span className={styles.statusBadgePago}>
+                          {' '}
+                          via {conexaoPorId.get(c.connection_id ?? '')?.institution_name ?? 'sincronização'}
+                        </span>
+                      )}
+                    </div>
                     <div className={styles.itemMeta}>
                       {CONTA_TIPO_LABEL[c.tipo]} ·{' '}
                       {formatMoeda(calcularSaldoConta(c, transacoesPorConta.get(c.id) ?? []))}
@@ -422,6 +475,11 @@ export default async function FinanceiroPage({
                           {formatMoeda(t.valor)}
                         </span>
                         {t.fixo && <span className={styles.fixoBadge}>Fixo</span>}
+                        {t.origem === 'pluggy' && (
+                          <span className={styles.fixoBadge}>
+                            via {conexaoPorId.get(conta?.connection_id ?? '')?.institution_name ?? 'sincronização'}
+                          </span>
+                        )}
                         {t.total_parcelas > 1 && (
                           <span className={styles.parcelaBadge}>
                             {t.parcela_atual}/{t.total_parcelas}

@@ -100,8 +100,14 @@ export const STATUS_PAGAMENTO_LABEL: Record<StatusPagamento, string> = {
  * Saldo de uma conta = saldo inicial (campo `saldo_atual`, só preenchido na
  * criação) + receitas já pagas - despesas já pagas daquela conta.
  * Transações pendentes não entram até o status virar "pago".
+ *
+ * Conta vinda de sincronização Pluggy é diferente: `saldo_atual` é atualizado
+ * a cada sync com o saldo real informado pelo banco, então já é o valor
+ * final — somar as transações por cima contaria tudo em dobro.
  */
 export function calcularSaldoConta(conta: ContaFinanceira, transacoesDaConta: Transacao[]): number {
+  if (conta.origem === 'pluggy') return conta.saldo_atual
+
   return transacoesDaConta.reduce((saldo, t) => {
     if (t.status_pagamento !== 'pago') return saldo
     return t.tipo === 'receita' ? saldo + t.valor : saldo - t.valor
