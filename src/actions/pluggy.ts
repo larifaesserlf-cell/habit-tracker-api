@@ -31,13 +31,34 @@ function normalizarSaldo(tipoConta: ContaTipo, saldoPluggy: number): number {
 async function sincronizarConexao(supabase: SupabaseServerClient, connectionId: string, userId: string) {
   const { data: conexao } = await supabase
     .from('bank_connections')
-    .select('id, pluggy_item_id')
+    .select('id, pluggy_item_id, last_sync')
     .eq('id', connectionId)
     .eq('user_id', userId)
     .maybeSingle()
   if (!conexao) return { erro: 'Conexão não encontrada.' }
 
-  const contasPluggy: PluggyAccount[] = await fetchAccounts(conexao.pluggy_item_id)
+  // Primeira sincronização busca o histórico inteiro; a partir daí, só
+  // pede da última sincronização pra trás (com uma folga de alguns dias
+  // pra pegar transação pendente que virou paga nesse meio-tempo). Sem
+  // isso, toda sincronização re-paginava o histórico completo de novo —
+  // ficou lento o bastante com uso real pra estourar timeout da função.
+  const DIAS_DE_FOLGA = 10
+  const dateFrom = conexao.last_sync
+    ? new Date(new Date(conexao.last_sync).getTime() - DIAS_DE_FOLGA * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10)
+    : undefined
+
+  let contasPluggy: PluggyAccount[]
+  try {
+    contasPluggy = await fetchAccounts(conexao.pluggy_item_id)
+  } catch (erro) {
+    // Erro de rede/API da Pluggy nunca pode propagar pra quem chamou —
+    // isso já quebrou a página inteira uma vez (o sync automático do
+    // AutoSyncStale roda toda visita a /financeiro).
+    console.error('[pluggy] Erro ao buscar contas na Pluggy:', erro)
+    return { erro: 'Falha ao buscar contas na Pluggy.' }
+  }
 
   for (const contaPluggy of contasPluggy) {
     const tipoConta = mapearTipoConta(contaPluggy.type, contaPluggy.subtype)
@@ -65,7 +86,13 @@ async function sincronizarConexao(supabase: SupabaseServerClient, connectionId: 
       continue
     }
 
-    const transacoesPluggy = await fetchTransactions(contaPluggy.id)
+    let transacoesPluggy: Awaited<ReturnType<typeof fetchTransactions>>
+    try {
+      transacoesPluggy = await fetchTransactions(contaPluggy.id, dateFrom)
+    } catch (erro) {
+      console.error('[pluggy] Erro ao buscar transações na Pluggy:', erro)
+      continue
+    }
     if (transacoesPluggy.length === 0) continue
 
     const idsPluggy = transacoesPluggy.map((t) => t.id)

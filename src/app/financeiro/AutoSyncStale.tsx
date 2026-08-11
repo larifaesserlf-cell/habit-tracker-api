@@ -29,8 +29,15 @@ export function AutoSyncStale({ conexoes }: { conexoes: { id: string; last_sync:
     if (desatualizadas.length === 0) return
 
     startTransition(async () => {
-      await Promise.all(desatualizadas.map((c) => syncConnection(c.id)))
-      router.refresh()
+      // allSettled + try/catch: uma conexão falhando (rede, Pluggy fora do
+      // ar, timeout) nunca pode quebrar a página — na pior das hipóteses,
+      // essa conexão específica só não atualiza agora.
+      try {
+        await Promise.allSettled(desatualizadas.map((c) => syncConnection(c.id)))
+        router.refresh()
+      } catch (erro) {
+        console.error('[pwa] Falha no sync automático:', erro)
+      }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
