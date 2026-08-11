@@ -6,7 +6,14 @@ import { fetchItem } from '@/lib/pluggy/items'
 import { fetchAccounts, type PluggyAccount } from '@/lib/pluggy/accounts'
 import { fetchTransactions } from '@/lib/pluggy/transactions'
 import { traduzirCategoriaPluggy } from '@/lib/pluggy/categorias'
+import { PluggyError } from '@/lib/pluggy/client'
 import type { ContaTipo } from '@/lib/supabase/types'
+
+function detalheDoErro(erro: unknown): string {
+  if (erro instanceof PluggyError) return `Pluggy (status ${erro.status}): ${erro.message}`
+  if (erro instanceof Error) return erro.message
+  return String(erro)
+}
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
@@ -57,7 +64,7 @@ async function sincronizarConexao(supabase: SupabaseServerClient, connectionId: 
     // isso já quebrou a página inteira uma vez (o sync automático do
     // AutoSyncStale roda toda visita a /financeiro).
     console.error('[pluggy] Erro ao buscar contas na Pluggy:', erro)
-    return { erro: 'Falha ao buscar contas na Pluggy.' }
+    return { erro: `Falha ao buscar contas na Pluggy: ${detalheDoErro(erro)}` }
   }
 
   for (const contaPluggy of contasPluggy) {
