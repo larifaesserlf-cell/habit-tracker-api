@@ -146,7 +146,6 @@ export type Transporte = {
 }
 
 export type ContaTipo = 'corrente' | 'poupanca' | 'carteira' | 'corretora' | 'cartao_credito'
-export type OrigemFinanceira = 'manual' | 'pluggy'
 
 export type ContaFinanceira = {
   id: string
@@ -155,10 +154,6 @@ export type ContaFinanceira = {
   tipo: ContaTipo
   saldo_atual: number
   dia_vencimento_fatura: number | null
-  connection_id: string | null
-  pluggy_account_id: string | null
-  origem: OrigemFinanceira
-  subtype_pluggy: string | null
   created_at: string
 }
 
@@ -181,24 +176,7 @@ export type Transacao = {
   parcela_atual: number
   compra_id: string
   status_pagamento: StatusPagamento | null
-  connection_id: string | null
-  pluggy_transaction_id: string | null
-  origem: OrigemFinanceira
-  categoria_pluggy: string | null
   created_at: string
-}
-
-export type BankConnection = {
-  id: string
-  user_id: string
-  pluggy_item_id: string
-  institution_name: string
-  connector_id: number | null
-  status: string
-  consent_expires_at: string | null
-  last_sync: string | null
-  created_at: string
-  updated_at: string
 }
 
 export type TipoAtivo =

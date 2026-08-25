@@ -13,15 +13,8 @@ import { CategoriaChartTabs } from './CategoriaChartTabs'
 import { CollapsibleSection } from './CollapsibleSection'
 import { StatusPagamentoToggle } from './StatusPagamentoToggle'
 import { FaturaToggleButton } from './FaturaToggleButton'
-import { ConnectNubankButton } from './ConnectNubankButton'
-import { SincronizarButton } from './SincronizarButton'
-import { DeleteConnectionButton } from './DeleteConnectionButton'
-import { AutoSyncStale } from './AutoSyncStale'
-import { InsightsCard } from './InsightsCard'
-import { calcularInsights } from './insights'
-import { FluxoCaixaChart, type FluxoMes, type SaldoMes } from './FluxoCaixaChart'
 import { CONTA_TIPO_LABEL, formatMoeda, formatDataBR, iconeCategoria, calcularSaldoConta } from './constants'
-import type { BankConnection, ContaFinanceira, OrcamentoMensal, StatusPagamento, Transacao } from '@/lib/supabase/types'
+import type { ContaFinanceira, StatusPagamento, Transacao } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
@@ -67,14 +60,6 @@ function nomeMes(mesISO: string): string {
   return nome.charAt(0).toUpperCase() + nome.slice(1)
 }
 
-const MESES_LABEL_ABREV = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
-
-/** Abreviação do mês em pt-BR pra eixo de gráfico, ex: "ago". */
-function labelMesAbrev(mesISO: string): string {
-  const [, mes] = mesISO.split('-').map(Number)
-  return MESES_LABEL_ABREV[mes - 1]
-}
-
 /** Monta a URL de /financeiro preservando os filtros de tipo/categoria e trocando o mês. */
 function hrefComMes(filtros: { tipo?: string; categoria?: string }, mes: string): string {
   const params = new URLSearchParams()
@@ -104,32 +89,22 @@ export default async function FinanceiroPage({
     redirect('/login')
   }
 
-  const [{ data: contasData }, { data: transacoesData }, { data: conexoesData }, { data: orcamentosData }] =
-    await Promise.all([
-      supabase
-        .from('contas_financeiras')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true }),
-      supabase
-        .from('transacoes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('data', { ascending: false })
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('bank_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true }),
-      supabase.from('orcamento_mensal').select('*').eq('user_id', user.id),
-    ])
+  const [{ data: contasData }, { data: transacoesData }] = await Promise.all([
+    supabase
+      .from('contas_financeiras')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('transacoes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('data', { ascending: false })
+      .order('created_at', { ascending: false }),
+  ])
 
   const contas = (contasData ?? []) as ContaFinanceira[]
   const contaPorId = new Map(contas.map((c) => [c.id, c]))
-  const conexoesBancarias = (conexoesData ?? []) as BankConnection[]
-  const conexaoPorId = new Map(conexoesBancarias.map((c) => [c.id, c]))
-  const orcamentos = (orcamentosData ?? []) as OrcamentoMensal[]
   const transacoes = (transacoesData ?? []) as Transacao[]
 
   const mesSelecionado = mesValido(mes)
@@ -158,40 +133,6 @@ export default async function FinanceiroPage({
     (soma, c) => soma + calcularSaldoConta(c, transacoesPorConta.get(c.id) ?? []),
     0
   )
-
-  // Fluxo de caixa dos últimos 6 meses — tendência independente do mês
-  // navegado acima (não usa `mesSelecionado`/`transacoesDoMes`).
-  const ultimosSeisMeses: string[] = []
-  for (let i = 5; i >= 0; i--) {
-    ultimosSeisMeses.push(deslocarMes(mesAtualISO(), -i))
-  }
-  const fluxoPorMes: FluxoMes[] = ultimosSeisMeses.map((m) => ({
-    mesLabel: labelMesAbrev(m),
-    receita: transacoes
-      .filter((t) => t.tipo === 'receita' && t.data.slice(0, 7) === m)
-      .reduce((soma, t) => soma + t.valor, 0),
-    despesa: transacoes
-      .filter((t) => t.tipo === 'despesa' && t.data.slice(0, 7) === m)
-      .reduce((soma, t) => soma + t.valor, 0),
-  }))
-
-  // Evolução do saldo: reconstrói o saldo de cada mês andando pra trás a
-  // partir do saldo atual, removendo o fluxo pago de cada mês seguinte —
-  // é uma estimativa de tendência (pra conta Pluggy não existe histórico de
-  // saldo real guardado, só o saldo atual em cada sincronização).
-  const totalPagoAteHoje = transacoes
-    .filter((t) => t.status_pagamento === 'pago')
-    .reduce((soma, t) => soma + (t.tipo === 'receita' ? t.valor : -t.valor), 0)
-  let saldoAcumulado = saldoTotalContas - totalPagoAteHoje
-  const saldoPorMes: SaldoMes[] = ultimosSeisMeses.map((m) => {
-    const netFlowDoMes = transacoes
-      .filter((t) => t.status_pagamento === 'pago' && t.data.slice(0, 7) === m)
-      .reduce((soma, t) => soma + (t.tipo === 'receita' ? t.valor : -t.valor), 0)
-    saldoAcumulado += netFlowDoMes
-    return { mesLabel: labelMesAbrev(m), saldo: saldoAcumulado }
-  })
-
-  const insights = calcularInsights(transacoes, orcamentos, mesSelecionado)
 
   // Agrupa as transações do mês por categoria (despesas e receitas
   // separadas) — não há lista fixa de categorias no código, os gráficos
@@ -285,8 +226,6 @@ export default async function FinanceiroPage({
 
   return (
     <div className={styles.page}>
-      <AutoSyncStale conexoes={conexoesBancarias.map((c) => ({ id: c.id, last_sync: c.last_sync }))} />
-
       <div className={styles.header}>
         <BackNav />
         <h1 className={styles.title}>Financeiro</h1>
@@ -294,55 +233,6 @@ export default async function FinanceiroPage({
           Ver investimentos →
         </Link>
       </div>
-
-      <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>Insights</h2>
-        </div>
-        <InsightsCard insights={insights} />
-      </section>
-
-      <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>Fluxo de caixa (últimos 6 meses)</h2>
-        </div>
-        <FluxoCaixaChart fluxo={fluxoPorMes} saldo={saldoPorMes} />
-      </section>
-
-      <section className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h2 className={styles.cardTitle}>Bancos conectados</h2>
-        </div>
-
-        {conexoesBancarias.length > 0 && (
-          <ul className={styles.list}>
-            {conexoesBancarias.map((conexao) => (
-              <li key={conexao.id} className={styles.item}>
-                <div className={styles.itemInfo}>
-                  <div>
-                    <div className={styles.itemNome}>{conexao.institution_name}</div>
-                    <div className={styles.itemMeta}>
-                      {conexao.last_sync
-                        ? `Última sincronização: ${new Date(conexao.last_sync).toLocaleString('pt-BR')}`
-                        : 'Ainda não sincronizado'}
-                      {' · item '}
-                      {conexao.pluggy_item_id.slice(0, 8)}
-                    </div>
-                  </div>
-                </div>
-                <div className={styles.itemActions}>
-                  <SincronizarButton connectionId={conexao.id} />
-                  <DeleteConnectionButton id={conexao.id} institutionName={conexao.institution_name} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div style={{ marginTop: conexoesBancarias.length > 0 ? '1rem' : 0 }}>
-          <ConnectNubankButton />
-        </div>
-      </section>
 
       <section className={styles.card}>
         <div className={styles.cardHeader}>
@@ -355,15 +245,7 @@ export default async function FinanceiroPage({
               <li key={c.id} className={styles.item}>
                 <div className={styles.itemInfo}>
                   <div>
-                    <div className={styles.itemNome}>
-                      {c.nome}
-                      {c.origem === 'pluggy' && (
-                        <span className={styles.statusBadgePago}>
-                          {' '}
-                          via {conexaoPorId.get(c.connection_id ?? '')?.institution_name ?? 'sincronização'}
-                        </span>
-                      )}
-                    </div>
+                    <div className={styles.itemNome}>{c.nome}</div>
                     <div className={styles.itemMeta}>
                       {CONTA_TIPO_LABEL[c.tipo]} ·{' '}
                       {formatMoeda(calcularSaldoConta(c, transacoesPorConta.get(c.id) ?? []))}
@@ -540,11 +422,6 @@ export default async function FinanceiroPage({
                           {formatMoeda(t.valor)}
                         </span>
                         {t.fixo && <span className={styles.fixoBadge}>Fixo</span>}
-                        {t.origem === 'pluggy' && (
-                          <span className={styles.fixoBadge}>
-                            via {conexaoPorId.get(conta?.connection_id ?? '')?.institution_name ?? 'sincronização'}
-                          </span>
-                        )}
                         {t.total_parcelas > 1 && (
                           <span className={styles.parcelaBadge}>
                             {t.parcela_atual}/{t.total_parcelas}
