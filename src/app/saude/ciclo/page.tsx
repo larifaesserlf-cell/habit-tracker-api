@@ -7,6 +7,7 @@ import { CicloEmAndamentoCard } from './CicloEmAndamentoCard'
 import { CicloForm } from './CicloForm'
 import { HistoricoCiclos } from './HistoricoCiclos'
 import { CalendarioMensal } from './CalendarioMensal'
+import { CicloDuracaoChart } from './CicloDuracaoChart'
 import { RelatorioPdfButton } from './RelatorioPdfButton'
 import { ObservacaoModalButton } from './ObservacaoModalButton'
 import { DeleteObservacaoButton } from './DeleteObservacaoButton'
@@ -190,6 +191,10 @@ export default async function CicloPage({
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Histórico de ciclos</h2>
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Duração do ciclo ao longo do tempo</h2>
+          <CicloDuracaoChart ciclos={ciclos} />
+        </section>
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>{editingCiclo ? 'Editar ciclo' : 'Adicionar ciclo retroativo'}</h2>
           <CicloForm key={editingCiclo?.id ?? 'new'} ciclo={editingCiclo} />

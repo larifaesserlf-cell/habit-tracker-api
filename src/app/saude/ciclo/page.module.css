@@ -517,3 +517,8 @@
   background: rgba(124, 152, 133, 0.2);
   color: var(--color-text-primary);
 }
+
+/* ── Gráfico de duração do ciclo ao longo do tempo ── */
+.chartWrap {
+  margin-top: 0.25rem;
+}
