@@ -18,6 +18,15 @@ export const metadata: Metadata = {
 }
 
 /**
+ * O Christian (parceiro da usuária) só usa a conta dele pra acessar a lista
+ * de filmes/séries compartilhada em /midias/juntos — o resto do painel
+ * (hábitos, financeiro, saúde etc.) é pessoal da usuária e não faz sentido
+ * pra ele. Sempre que a conta dele cai em /hoje (login, registro, o link
+ * "Início" do BackNav), redireciona direto pra /midias.
+ */
+const EMAIL_REDIRECIONA_PARA_MIDIAS = 'csm@focoradical.com.br'
+
+/**
  * Janela de 3 dias (pelo relógio do servidor) só pra garantir que o dia
  * "de hoje" do navegador do usuário — calculado no HabitCheckInToggle,
  * client-side, igual à rotina desta página — esteja incluído
@@ -103,6 +112,10 @@ export default async function HojePage() {
 
   if (!user) {
     redirect('/login')
+  }
+
+  if (user.email === EMAIL_REDIRECIONA_PARA_MIDIAS) {
+    redirect('/midias')
   }
 
   const { inicio: inicioMes, fim: fimMes } = faixaMesAtual()
