@@ -25,7 +25,7 @@ export function HistoricoCiclos({ ciclos }: { ciclos: CicloMenstrual[] }) {
   }
 
   return (
-    <ul className={styles.list}>
+    <ul className={`${styles.list} ${styles.listCiclos}`}>
       {ciclos.map((ciclo, i) => {
         const emAndamento = !ciclo.data_fim
         // `ciclos` vem ordenado do mais recente pro mais antigo — o próximo
@@ -37,7 +37,10 @@ export function HistoricoCiclos({ ciclos }: { ciclos: CicloMenstrual[] }) {
           : null
 
         return (
-          <li key={ciclo.id} className={emAndamento ? `${styles.item} ${styles.itemAtivo}` : styles.item}>
+          <li
+            key={ciclo.id}
+            className={emAndamento ? `${styles.item} ${styles.itemCiclo} ${styles.itemAtivo}` : `${styles.item} ${styles.itemCiclo}`}
+          >
             <div className={styles.itemInfo}>
               <div>
                 <div className={styles.itemNome}>
@@ -48,16 +51,16 @@ export function HistoricoCiclos({ ciclos }: { ciclos: CicloMenstrual[] }) {
                   {duracaoCiclo !== null && ` · ciclo de ${duracaoCiclo} dias`}
                 </div>
               </div>
-              {emAndamento && <span className={styles.badgeAtivo}>Em andamento</span>}
-            </div>
-            <div className={styles.itemActions}>
-              <Link href={`/saude/ciclo?editCiclo=${ciclo.id}`} className={styles.editLink}>
-                Editar
-              </Link>
-              <DeleteCicloButton
-                id={ciclo.id}
-                descricao={`${formatDataBR(ciclo.data_inicio)} – ${emAndamento ? 'em andamento' : formatDataBR(ciclo.data_fim!)}`}
-              />
+              <div className={styles.itemCicloDireita}>
+                {emAndamento && <span className={styles.badgeAtivo}>Em andamento</span>}
+                <Link href={`/saude/ciclo?editCiclo=${ciclo.id}`} className={styles.editLink}>
+                  Editar
+                </Link>
+                <DeleteCicloButton
+                  id={ciclo.id}
+                  descricao={`${formatDataBR(ciclo.data_inicio)} – ${emAndamento ? 'em andamento' : formatDataBR(ciclo.data_fim!)}`}
+                />
+              </div>
             </div>
           </li>
         )

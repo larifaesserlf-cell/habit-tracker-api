@@ -190,6 +190,23 @@
   margin-top: 0.6rem;
 }
 
+/* ── Histórico de ciclos, versão compacta: ações na mesma linha da data,
+   sem a segunda linha reservada pra Editar/Excluir ── */
+.listCiclos {
+  gap: 0.35rem;
+}
+
+.itemCiclo {
+  padding: 0.55rem 0.85rem;
+}
+
+.itemCicloDireita {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
 .editLink {
   color: var(--color-accent-hover);
   font-size: 0.85rem;
@@ -433,16 +450,18 @@
 .calendarGrid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.35rem;
+  gap: 0.3rem;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
 .calendarDiaSemana {
   color: var(--color-text-secondary);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 600;
   text-align: center;
   text-transform: uppercase;
-  padding-bottom: 0.3rem;
+  padding-bottom: 0.25rem;
 }
 
 .calendarDiaVazio {
@@ -455,10 +474,10 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  border-radius: 0.5rem;
+  border-radius: 0.4rem;
   background: rgba(237, 237, 237, 0.04);
   color: rgba(237, 237, 237, 0.7);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
 }
 
 .calendarDiaMenstruacao {
@@ -469,6 +488,7 @@
 
 .calendarLegenda {
   display: flex;
+  justify-content: center;
   gap: 1.25rem;
   margin-top: 1rem;
   flex-wrap: wrap;
