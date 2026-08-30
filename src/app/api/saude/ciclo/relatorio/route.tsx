@@ -217,10 +217,14 @@ export async function GET(request: NextRequest) {
     <RelatorioCicloDocument inicio={inicio} fim={fim} ciclos={ciclos} observacoes={observacoes} />
   )
 
+  // "inline" abre o PDF numa aba do navegador em vez de forçar o download —
+  // mesmo arquivo, só muda como o navegador trata a resposta.
+  const modo = request.nextUrl.searchParams.get('modo') === 'visualizar' ? 'inline' : 'attachment'
+
   return new Response(new Uint8Array(buffer), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="ciclo-menstrual_${inicio}_a_${fim}.pdf"`,
+      'Content-Disposition': `${modo}; filename="ciclo-menstrual_${inicio}_a_${fim}.pdf"`,
     },
   })
 }

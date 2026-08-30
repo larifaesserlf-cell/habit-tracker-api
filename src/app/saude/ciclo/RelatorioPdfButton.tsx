@@ -23,13 +23,23 @@ export function RelatorioPdfButton() {
   const [inicio, setInicio] = useState(hojeISO())
   const [fim, setFim] = useState(hojeISO())
 
-  function baixar() {
+  function montarParams() {
     const params = new URLSearchParams({ periodo })
     if (periodo === 'customizado') {
       params.set('inicio', inicio)
       params.set('fim', fim)
     }
-    window.location.href = `/api/saude/ciclo/relatorio?${params.toString()}`
+    return params
+  }
+
+  function baixar() {
+    window.location.href = `/api/saude/ciclo/relatorio?${montarParams().toString()}`
+  }
+
+  function visualizar() {
+    const params = montarParams()
+    params.set('modo', 'visualizar')
+    window.open(`/api/saude/ciclo/relatorio?${params.toString()}`, '_blank')
   }
 
   if (!aberto) {
@@ -69,7 +79,10 @@ export function RelatorioPdfButton() {
       )}
 
       <div className={styles.formActions}>
-        <button type="button" className={styles.submitBtn} onClick={baixar}>
+        <button type="button" className={styles.submitBtn} onClick={visualizar}>
+          Visualizar PDF
+        </button>
+        <button type="button" className={styles.secondaryBtn} onClick={baixar}>
           Baixar PDF
         </button>
         <button type="button" className={styles.cancelLink} onClick={() => setAberto(false)}>
