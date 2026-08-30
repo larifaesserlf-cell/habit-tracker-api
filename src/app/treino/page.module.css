@@ -1,0 +1,281 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-bg);
+  padding: 2rem 1.5rem 4rem;
+}
+
+.header {
+  max-width: 720px;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.card {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+  background: var(--color-surface);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(237, 237, 237, 0.12);
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0 0 1rem;
+}
+
+.section {
+  max-width: 720px;
+  margin: 0 auto 2rem;
+}
+
+.sectionTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.75rem;
+}
+
+.empty {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* ── Formulário de registro rápido ── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.formRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.fieldSmall,
+.fieldGrow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fieldSmall {
+  width: 9rem;
+}
+
+.fieldGrow {
+  flex: 1;
+  min-width: 10rem;
+}
+
+.form label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.form input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  border-radius: 0.5rem;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.form input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(124, 152, 133, 0.2);
+}
+
+.error {
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  border-radius: 0.5rem;
+  color: #fca5a5;
+  font-size: 0.85rem;
+  padding: 0.6rem 0.85rem;
+  margin: 0;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.submitBtn {
+  padding: 0.65rem 1.25rem;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+  border: none;
+  border-radius: 0.5rem;
+  color: var(--color-bg);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.secondaryBtn {
+  align-self: flex-start;
+  padding: 0.5rem 0.9rem;
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  border-radius: 0.5rem;
+  color: rgba(237, 237, 237, 0.75);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.secondaryBtn:hover {
+  background: rgba(237, 237, 237, 0.1);
+  color: var(--color-text-primary);
+}
+
+/* ── Linhas de exercício dentro do registro rápido ── */
+.exerciciosForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exercicioLinha {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.exercicioInputNome {
+  flex: 2;
+  min-width: 0;
+}
+
+.exercicioInputSerie {
+  flex: 1;
+  min-width: 0;
+  max-width: 6rem;
+}
+
+.exercicioInputCarga {
+  flex: 1;
+  min-width: 0;
+  max-width: 6rem;
+}
+
+/* ── Listas ── */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item {
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+}
+
+.itemInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.itemNome {
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.itemMeta {
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+.itemAcoes {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.deleteBtn {
+  background: none;
+  border: none;
+  color: rgba(237, 237, 237, 0.35);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.deleteBtn:hover {
+  color: #f87171;
+}
+
+.deleteBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Exercícios dentro de cada sessão do histórico ── */
+.exerciciosList {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid rgba(237, 237, 237, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.exercicioItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.exercicioNome {
+  color: rgba(237, 237, 237, 0.85);
+}
+
+.exercicioDetalhe {
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+}

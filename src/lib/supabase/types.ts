@@ -227,6 +227,26 @@ export type ObservacaoCiclo = {
   created_at: string
 }
 
+// ── Treino (registro de sessões de academia) ────────────────────────────────
+
+export type Treino = {
+  id: string
+  user_id: string
+  data: string
+  nome: string
+  created_at: string
+}
+
+export type ExercicioTreino = {
+  id: string
+  treino_id: string
+  nome: string
+  series_reps: string | null
+  carga: string | null
+  ordem: number
+  created_at: string
+}
+
 // ── Lista compartilhada de filmes/séries (múltiplos membros) ──────────────
 
 export type ListaWatch = {

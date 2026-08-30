@@ -234,6 +234,9 @@ export default async function HojePage() {
           <Link href="/saude/ciclo" className={styles.navLink}>
             Ciclo
           </Link>
+          <Link href="/treino" className={styles.navLink}>
+            Treino
+          </Link>
           <Link href="/midias" className={styles.navLink}>
             Mídias
           </Link>
