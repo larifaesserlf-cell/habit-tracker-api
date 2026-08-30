@@ -101,3 +101,30 @@ export async function deleteTreino(id: string) {
   await supabase.from('treinos').delete().eq('id', id).eq('user_id', user.id)
   revalidatePath('/treino')
 }
+
+/**
+ * Salva o bloco de observações livre (regras de progressão, deload,
+ * rotação de exercícios etc) — uma linha por usuária, upsert por user_id.
+ */
+export async function saveObservacoesTreino(_prevState: TreinoFormState, formData: FormData): Promise<TreinoFormState> {
+  const conteudo = (formData.get('conteudo') as string | null) ?? ''
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return { status: 'error', message: 'Sessão expirada. Faça login novamente.' }
+  }
+
+  const { error } = await supabase
+    .from('treino_notas')
+    .upsert({ user_id: user.id, conteudo, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
+
+  if (error) {
+    return { status: 'error', message: `Erro ao salvar observações: ${error.message}` }
+  }
+
+  revalidatePath('/treino')
+  return { status: 'success' }
+}

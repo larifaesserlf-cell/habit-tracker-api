@@ -23,13 +23,32 @@ export type TreinoParaCopia = {
   exercicios: { nome: string; seriesReps: string; carga: string }[]
 }
 
+export type ModeloParaCopia = {
+  id: string
+  nome: string
+  diaLabel: string
+  exercicios: { nome: string; seriesReps: string }[]
+}
+
 function formatDataBR(data: string) {
   return data.split('-').reverse().join('/')
 }
 
+// Os dois vêm de tabelas diferentes (ids podem colidir em teoria, já que são
+// UUIDs de espaços distintos) — prefixa o value do <option> pra saber de
+// qual lista veio ao aplicar a cópia.
+const PREFIXO_MODELO = 'modelo:'
+const PREFIXO_TREINO = 'treino:'
+
 const initialState: TreinoFormState = { status: 'idle' }
 
-export function NovoTreinoForm({ treinosParaCopia }: { treinosParaCopia: TreinoParaCopia[] }) {
+export function NovoTreinoForm({
+  treinosParaCopia,
+  modelosParaCopia,
+}: {
+  treinosParaCopia: TreinoParaCopia[]
+  modelosParaCopia: ModeloParaCopia[]
+}) {
   const [state, formAction, pending] = useActionState(saveTreino, initialState)
 
   const [data, setData] = useState(hojeISO())
@@ -68,23 +87,40 @@ export function NovoTreinoForm({ treinosParaCopia }: { treinosParaCopia: TreinoP
   }
 
   /**
-   * Copia o nome e a lista de exercícios de um treino já feito — a rotina
-   * dela repete os mesmos exercícios por semanas a fio, só variando
-   * série/carga aos poucos, então copiar e ajustar é bem mais rápido que
-   * digitar tudo de novo. Não mexe na data (continua sendo hoje por
-   * padrão) nem impede editar qualquer campo depois de copiar.
+   * Copia o nome e a lista de exercícios de um treino já feito ou de um
+   * modelo fixo do plano — a rotina dela repete os mesmos exercícios por
+   * semanas a fio, só variando série/carga aos poucos, então copiar e
+   * ajustar é bem mais rápido que digitar tudo de novo. Não mexe na data
+   * (continua sendo hoje por padrão) nem impede editar qualquer campo
+   * depois de copiar. Modelos não têm carga registrada (é só a faixa de
+   * reps do plano), então a carga fica em branco pra ela preencher com o
+   * peso atual.
    */
-  function copiarTreino(id: string) {
-    setCopiaSelecionada(id) // feedback visual momentâneo do que foi escolhido
-    const treino = treinosParaCopia.find((t) => t.id === id)
-    if (!treino) return
+  function copiarTreino(valor: string) {
+    setCopiaSelecionada(valor) // feedback visual momentâneo do que foi escolhido
 
-    setNome(treino.nome)
-    setLinhas(
-      treino.exercicios.length > 0
-        ? treino.exercicios.map((e) => ({ ...novaLinha(), nome: e.nome, seriesReps: e.seriesReps, carga: e.carga }))
-        : [novaLinha()]
-    )
+    if (valor.startsWith(PREFIXO_MODELO)) {
+      const modelo = modelosParaCopia.find((m) => m.id === valor.slice(PREFIXO_MODELO.length))
+      if (!modelo) return
+      setNome(modelo.nome)
+      setLinhas(
+        modelo.exercicios.length > 0
+          ? modelo.exercicios.map((e) => ({ ...novaLinha(), nome: e.nome, seriesReps: e.seriesReps, carga: '' }))
+          : [novaLinha()]
+      )
+    } else if (valor.startsWith(PREFIXO_TREINO)) {
+      const treino = treinosParaCopia.find((t) => t.id === valor.slice(PREFIXO_TREINO.length))
+      if (!treino) return
+      setNome(treino.nome)
+      setLinhas(
+        treino.exercicios.length > 0
+          ? treino.exercicios.map((e) => ({ ...novaLinha(), nome: e.nome, seriesReps: e.seriesReps, carga: e.carga }))
+          : [novaLinha()]
+      )
+    } else {
+      return
+    }
+
     setCopiaSelecionada('') // volta pro placeholder, já aplicou
   }
 
@@ -100,16 +136,29 @@ export function NovoTreinoForm({ treinosParaCopia }: { treinosParaCopia: TreinoP
         </p>
       )}
 
-      {treinosParaCopia.length > 0 && (
+      {(modelosParaCopia.length > 0 || treinosParaCopia.length > 0) && (
         <div className={styles.fieldGrow}>
-          <label htmlFor="treino_copiar">Copiar de um treino já feito</label>
+          <label htmlFor="treino_copiar">Copiar de um treino</label>
           <select id="treino_copiar" value={copiaSelecionada} onChange={(e) => copiarTreino(e.target.value)}>
             <option value="">Selecionar treino…</option>
-            {treinosParaCopia.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.nome} — {formatDataBR(t.data)}
-              </option>
-            ))}
+            {modelosParaCopia.length > 0 && (
+              <optgroup label="Plano fixo">
+                {modelosParaCopia.map((m) => (
+                  <option key={m.id} value={`${PREFIXO_MODELO}${m.id}`}>
+                    {m.diaLabel} — {m.nome}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {treinosParaCopia.length > 0 && (
+              <optgroup label="Treinos anteriores">
+                {treinosParaCopia.map((t) => (
+                  <option key={t.id} value={`${PREFIXO_TREINO}${t.id}`}>
+                    {t.nome} — {formatDataBR(t.data)}
+                  </option>
+                ))}
+              </optgroup>
+            )}
           </select>
         </div>
       )}

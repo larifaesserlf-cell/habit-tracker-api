@@ -2,13 +2,25 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BackNav } from '@/components/BackNav'
-import { NovoTreinoForm, type TreinoParaCopia } from './NovoTreinoForm'
+import { NovoTreinoForm, type ModeloParaCopia, type TreinoParaCopia } from './NovoTreinoForm'
 import { TreinosList } from './TreinosList'
-import type { ExercicioTreino, Treino } from '@/lib/supabase/types'
+import { PlanoTreino } from './PlanoTreino'
+import { ObservacoesTreino } from './ObservacoesTreino'
+import type { ExercicioTreino, ModeloTreino, ModeloTreinoExercicio, Treino, TreinoNotas } from '@/lib/supabase/types'
 import styles from './page.module.css'
 
 export const metadata: Metadata = {
   title: 'Treino',
+}
+
+const NOME_DIA: Record<string, string> = {
+  segunda: 'Segunda',
+  terca: 'Terça',
+  quarta: 'Quarta',
+  quinta: 'Quinta',
+  sexta: 'Sexta',
+  sabado: 'Sábado',
+  domingo: 'Domingo',
 }
 
 export default async function TreinoPage() {
@@ -21,20 +33,26 @@ export default async function TreinoPage() {
     redirect('/login')
   }
 
-  const { data: treinosData } = await supabase
-    .from('treinos')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('data', { ascending: false })
-    .order('created_at', { ascending: false })
+  const [{ data: treinosData }, { data: modelosData }, { data: notasData }] = await Promise.all([
+    supabase.from('treinos').select('*').eq('user_id', user.id).order('data', { ascending: false }).order('created_at', { ascending: false }),
+    supabase.from('modelos_treino').select('*').eq('user_id', user.id).order('ordem', { ascending: true }),
+    supabase.from('treino_notas').select('*').eq('user_id', user.id).maybeSingle(),
+  ])
 
   const treinos = (treinosData ?? []) as Treino[]
   const treinoIds = treinos.map((t) => t.id)
 
-  const { data: exerciciosData } =
+  const modelos = (modelosData ?? []) as ModeloTreino[]
+  const modeloIds = modelos.map((m) => m.id)
+
+  const [{ data: exerciciosData }, { data: modelosExerciciosData }] = await Promise.all([
     treinoIds.length > 0
-      ? await supabase.from('exercicios_treino').select('*').in('treino_id', treinoIds).order('ordem', { ascending: true })
-      : { data: [] as ExercicioTreino[] }
+      ? supabase.from('exercicios_treino').select('*').in('treino_id', treinoIds).order('ordem', { ascending: true })
+      : Promise.resolve({ data: [] as ExercicioTreino[] }),
+    modeloIds.length > 0
+      ? supabase.from('modelos_treino_exercicios').select('*').in('modelo_id', modeloIds).order('ordem', { ascending: true })
+      : Promise.resolve({ data: [] as ModeloTreinoExercicio[] }),
+  ])
 
   const exerciciosPorTreino = new Map<string, ExercicioTreino[]>()
   for (const exercicio of (exerciciosData ?? []) as ExercicioTreino[]) {
@@ -42,6 +60,15 @@ export default async function TreinoPage() {
     lista.push(exercicio)
     exerciciosPorTreino.set(exercicio.treino_id, lista)
   }
+
+  const exerciciosPorModelo = new Map<string, ModeloTreinoExercicio[]>()
+  for (const exercicio of (modelosExerciciosData ?? []) as ModeloTreinoExercicio[]) {
+    const lista = exerciciosPorModelo.get(exercicio.modelo_id) ?? []
+    lista.push(exercicio)
+    exerciciosPorModelo.set(exercicio.modelo_id, lista)
+  }
+
+  const notas = notasData as TreinoNotas | null
 
   // `treinos` já vem ordenado do mais recente pro mais antigo — mantém essa
   // ordem no seletor de cópia, já que é o treino mais recente (mesmo nome
@@ -57,6 +84,16 @@ export default async function TreinoPage() {
     })),
   }))
 
+  const modelosParaCopia: ModeloParaCopia[] = modelos.map((m) => ({
+    id: m.id,
+    nome: m.nome,
+    diaLabel: NOME_DIA[m.dia_semana] ?? m.dia_semana,
+    exercicios: (exerciciosPorModelo.get(m.id) ?? []).map((e) => ({
+      nome: e.nome,
+      seriesReps: e.faixa_reps ?? '',
+    })),
+  }))
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -66,12 +103,24 @@ export default async function TreinoPage() {
 
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>Registrar treino</h2>
-        <NovoTreinoForm treinosParaCopia={treinosParaCopia} />
+        <NovoTreinoForm treinosParaCopia={treinosParaCopia} modelosParaCopia={modelosParaCopia} />
       </section>
+
+      {modelos.length > 0 && (
+        <section className={styles.section}>
+          <h2 className={styles.sectionTitle}>Plano fixo</h2>
+          <PlanoTreino modelos={modelos} exerciciosPorModelo={exerciciosPorModelo} />
+        </section>
+      )}
 
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Histórico de treinos</h2>
         <TreinosList treinos={treinos} exerciciosPorTreino={exerciciosPorTreino} />
+      </section>
+
+      <section className={styles.card}>
+        <h2 className={styles.cardTitle}>Observações</h2>
+        <ObservacoesTreino conteudoInicial={notas?.conteudo ?? ''} />
       </section>
     </div>
   )

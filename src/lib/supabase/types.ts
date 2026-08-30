@@ -247,6 +247,32 @@ export type ExercicioTreino = {
   created_at: string
 }
 
+export type ModeloTreino = {
+  id: string
+  user_id: string
+  dia_semana: string
+  nome: string
+  ordem: number
+  created_at: string
+}
+
+export type ModeloTreinoExercicio = {
+  id: string
+  modelo_id: string
+  grupo: string | null
+  nome: string
+  faixa_reps: string | null
+  ordem: number
+  created_at: string
+}
+
+export type TreinoNotas = {
+  id: string
+  user_id: string
+  conteudo: string
+  updated_at: string
+}
+
 // ── Lista compartilhada de filmes/séries (múltiplos membros) ──────────────
 
 export type ListaWatch = {

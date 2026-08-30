@@ -286,3 +286,30 @@
   flex-shrink: 0;
   white-space: nowrap;
 }
+
+.exercicioGrupo {
+  color: var(--color-text-secondary);
+}
+
+/* ── Observações (bloco de notas livre) ── */
+.observacoesTextarea {
+  width: 100%;
+  min-height: 10rem;
+  padding: 0.75rem;
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  border-radius: 0.5rem;
+  color: var(--color-text-primary);
+  font-size: 0.88rem;
+  font-family: inherit;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.observacoesTextarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(124, 152, 133, 0.2);
+}
