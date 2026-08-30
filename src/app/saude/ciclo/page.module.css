@@ -82,6 +82,12 @@
   font-weight: 600;
 }
 
+.previsaoTexto {
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  margin-top: 0.3rem;
+}
+
 .bannerInline {
   display: flex;
   align-items: flex-end;

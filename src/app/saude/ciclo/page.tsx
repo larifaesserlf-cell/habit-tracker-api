@@ -17,6 +17,29 @@ export const metadata: Metadata = {
   title: 'Ciclo Menstrual',
 }
 
+/**
+ * Previsão simples do próximo ciclo: média histórica dos intervalos entre
+ * início de um ciclo e início do seguinte, aplicada sobre o início do
+ * ciclo mais recente. Exige pelo menos 3 ciclos (2 intervalos) pra não
+ * projetar em cima de uma amostra única — com menos que isso, retorna null
+ * e a tela simplesmente não mostra previsão nenhuma.
+ */
+function calcularPrevisaoProximoCiclo(ciclos: CicloMenstrual[]): string | null {
+  if (ciclos.length < 3) return null
+
+  const iniciosAsc = [...ciclos].map((c) => c.data_inicio).sort()
+  const msPorDia = 24 * 60 * 60 * 1000
+  const intervalos: number[] = []
+  for (let i = 1; i < iniciosAsc.length; i++) {
+    intervalos.push(Math.round((Date.parse(iniciosAsc[i]) - Date.parse(iniciosAsc[i - 1])) / msPorDia))
+  }
+
+  const mediaDias = Math.round(intervalos.reduce((soma, v) => soma + v, 0) / intervalos.length)
+  const ultimoInicio = iniciosAsc[iniciosAsc.length - 1]
+  const previsao = new Date(Date.parse(ultimoInicio) + mediaDias * msPorDia)
+  return previsao.toISOString().slice(0, 10)
+}
+
 function mesAtualISO(): string {
   const agora = new Date()
   return `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`
@@ -100,6 +123,10 @@ export default async function CicloPage({
 
   const cicloAberto = ciclos.find((c) => !c.data_fim) ?? null
   const editingCiclo = editCiclo ? ciclos.find((c) => c.id === editCiclo) ?? null : null
+  // Não faz sentido prever o próximo ciclo enquanto um já está em
+  // andamento — a informação relevante nesse caso já é outra (há quanto
+  // tempo começou), mostrada pelo próprio card.
+  const previsaoProximoCiclo = cicloAberto ? null : calcularPrevisaoProximoCiclo(ciclos)
 
   return (
     <div className={styles.page}>
@@ -108,7 +135,7 @@ export default async function CicloPage({
         <h1 className={styles.title}>Ciclo Menstrual</h1>
       </div>
 
-      <CicloEmAndamentoCard cicloAberto={cicloAberto} />
+      <CicloEmAndamentoCard cicloAberto={cicloAberto} previsaoProximoCiclo={previsaoProximoCiclo} />
 
       <section className={styles.card}>
         <div className={styles.mesNav}>

@@ -13,6 +13,12 @@ function duracaoDias(dataInicio: string, dataFim: string): number {
   return Math.round((Date.parse(dataFim) - Date.parse(dataInicio)) / msPorDia) + 1
 }
 
+/** Duração do ciclo (não da menstruação): início de um ciclo até o início do seguinte. */
+function duracaoEntreInicios(dataInicioMaisRecente: string, dataInicioAnterior: string): number {
+  const msPorDia = 24 * 60 * 60 * 1000
+  return Math.round((Date.parse(dataInicioMaisRecente) - Date.parse(dataInicioAnterior)) / msPorDia)
+}
+
 export function HistoricoCiclos({ ciclos }: { ciclos: CicloMenstrual[] }) {
   if (ciclos.length === 0) {
     return <p className={styles.empty}>Nenhum ciclo registrado ainda.</p>
@@ -20,8 +26,16 @@ export function HistoricoCiclos({ ciclos }: { ciclos: CicloMenstrual[] }) {
 
   return (
     <ul className={styles.list}>
-      {ciclos.map((ciclo) => {
+      {ciclos.map((ciclo, i) => {
         const emAndamento = !ciclo.data_fim
+        // `ciclos` vem ordenado do mais recente pro mais antigo — o próximo
+        // cronologicamente é o de índice anterior (i - 1). O mais recente
+        // (i === 0) ainda não tem "ciclo seguinte" pra calcular a duração.
+        const proximoCronologico = i > 0 ? ciclos[i - 1] : null
+        const duracaoCiclo = proximoCronologico
+          ? duracaoEntreInicios(proximoCronologico.data_inicio, ciclo.data_inicio)
+          : null
+
         return (
           <li key={ciclo.id} className={emAndamento ? `${styles.item} ${styles.itemAtivo}` : styles.item}>
             <div className={styles.itemInfo}>
@@ -30,7 +44,8 @@ export function HistoricoCiclos({ ciclos }: { ciclos: CicloMenstrual[] }) {
                   {formatDataBR(ciclo.data_inicio)} – {emAndamento ? 'em andamento' : formatDataBR(ciclo.data_fim!)}
                 </div>
                 <div className={styles.itemMeta}>
-                  {emAndamento ? 'Duração ainda não definida' : `${duracaoDias(ciclo.data_inicio, ciclo.data_fim!)} dias`}
+                  {emAndamento ? 'Duração ainda não definida' : `${duracaoDias(ciclo.data_inicio, ciclo.data_fim!)} dias de menstruação`}
+                  {duracaoCiclo !== null && ` · ciclo de ${duracaoCiclo} dias`}
                 </div>
               </div>
               {emAndamento && <span className={styles.badgeAtivo}>Em andamento</span>}

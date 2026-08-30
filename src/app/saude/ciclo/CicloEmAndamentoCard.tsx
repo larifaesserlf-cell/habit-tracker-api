@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveCiclo, type CicloFormState } from '@/actions/ciclo'
 import type { CicloMenstrual } from '@/lib/supabase/types'
@@ -25,22 +25,33 @@ function formatDuracao(dias: number): string {
   return `há ${dias} dias`
 }
 
-export function CicloEmAndamentoCard({ cicloAberto }: { cicloAberto: CicloMenstrual | null }) {
+/** "27 de agosto", pra previsão simples sem soar alarmista com uma data cheia. */
+function formatDataBRExtenso(dataISO: string): string {
+  const [ano, mes, dia] = dataISO.split('-').map(Number)
+  return new Date(Date.UTC(ano, mes - 1, dia)).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    timeZone: 'UTC',
+  })
+}
+
+/**
+ * Ação rápida do módulo — "Desceu hoje" / "Parou hoje" em 1 clique só, sem
+ * formulário/data-picker no meio (pensado como o bloco de notas que a
+ * usuária pediu). Corrigir uma data errada continua possível pelo
+ * "Editar" no histórico logo abaixo, que já existia — não precisa duplicar
+ * esse caminho aqui.
+ */
+export function CicloEmAndamentoCard({
+  cicloAberto,
+  previsaoProximoCiclo,
+}: {
+  cicloAberto: CicloMenstrual | null
+  previsaoProximoCiclo: string | null
+}) {
   const [state, formAction, pending] = useActionState(saveCiclo, initialState)
-  const [mostrarForm, setMostrarForm] = useState(false)
   const router = useRouter()
   const hoje = hojeISO()
-
-  // Fecha o formulário inline assim que salvar com sucesso — comparado
-  // durante o render (não num efeito) pra não disparar um setState síncrono
-  // dentro do efeito, seguindo o mesmo padrão usado nos outros formulários.
-  const [stateAnterior, setStateAnterior] = useState(state)
-  if (state !== stateAnterior) {
-    setStateAnterior(state)
-    if (state.status === 'success') {
-      setMostrarForm(false)
-    }
-  }
 
   useEffect(() => {
     if (state.status === 'success') {
@@ -51,41 +62,32 @@ export function CicloEmAndamentoCard({ cicloAberto }: { cicloAberto: CicloMenstr
   return (
     <section className={styles.card}>
       <div className={styles.bannerParada}>
-        <span className={cicloAberto ? `${styles.bannerTexto} ${styles.bannerTextoAtivo}` : styles.bannerTexto}>
-          {cicloAberto
-            ? `Menstruação em andamento — ${formatDuracao(diasDesde(cicloAberto.data_inicio))}`
-            : 'Nenhuma menstruação em andamento no momento.'}
-        </span>
-        {!mostrarForm && (
-          <button type="button" className={styles.actionBtn} onClick={() => setMostrarForm(true)}>
-            {cicloAberto ? 'Registrar fim da menstruação' : 'Registrar início da menstruação'}
-          </button>
-        )}
-      </div>
+        <div>
+          <span className={cicloAberto ? `${styles.bannerTexto} ${styles.bannerTextoAtivo}` : styles.bannerTexto}>
+            {cicloAberto
+              ? `Menstruação em andamento — ${formatDuracao(diasDesde(cicloAberto.data_inicio))}`
+              : 'Nenhuma menstruação em andamento no momento.'}
+          </span>
+          {!cicloAberto && previsaoProximoCiclo && (
+            <div className={styles.previsaoTexto}>Previsão: por volta de {formatDataBRExtenso(previsaoProximoCiclo)}</div>
+          )}
+        </div>
 
-      {mostrarForm && (
-        <form action={formAction} className={styles.bannerInline}>
-          {cicloAberto && <input type="hidden" name="id" value={cicloAberto.id} />}
-          {cicloAberto && <input type="hidden" name="data_inicio" value={cicloAberto.data_inicio} />}
-
-          <div className={styles.fieldSmall}>
-            <label htmlFor="data_evento">{cicloAberto ? 'Data de fim' : 'Data de início'}</label>
-            <input
-              id="data_evento"
-              name={cicloAberto ? 'data_fim' : 'data_inicio'}
-              type="date"
-              defaultValue={hoje}
-              required
-            />
-          </div>
+        <form action={formAction}>
+          {cicloAberto ? (
+            <>
+              <input type="hidden" name="id" value={cicloAberto.id} />
+              <input type="hidden" name="data_inicio" value={cicloAberto.data_inicio} />
+              <input type="hidden" name="data_fim" value={hoje} />
+            </>
+          ) : (
+            <input type="hidden" name="data_inicio" value={hoje} />
+          )}
           <button type="submit" disabled={pending} className={styles.actionBtn}>
-            {pending ? 'Salvando…' : 'Confirmar'}
-          </button>
-          <button type="button" className={styles.secondaryBtn} onClick={() => setMostrarForm(false)}>
-            Cancelar
+            {pending ? 'Salvando…' : cicloAberto ? 'Parou hoje' : 'Desceu hoje'}
           </button>
         </form>
-      )}
+      </div>
 
       {state.status === 'error' && (
         <p className={styles.error} role="alert" style={{ marginTop: '0.85rem' }}>
