@@ -93,7 +93,8 @@
   letter-spacing: 0.03em;
 }
 
-.form input {
+.form input,
+.form select {
   width: 100%;
   padding: 0.6rem 0.75rem;
   background: rgba(237, 237, 237, 0.06);
@@ -106,9 +107,15 @@
   box-sizing: border-box;
 }
 
-.form input:focus {
+.form input:focus,
+.form select:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px rgba(124, 152, 133, 0.2);
+}
+
+.form select option {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .error {

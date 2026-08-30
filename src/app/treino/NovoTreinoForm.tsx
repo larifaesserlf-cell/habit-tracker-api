@@ -16,14 +16,30 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10)
 }
 
+export type TreinoParaCopia = {
+  id: string
+  nome: string
+  data: string
+  exercicios: { nome: string; seriesReps: string; carga: string }[]
+}
+
+function formatDataBR(data: string) {
+  return data.split('-').reverse().join('/')
+}
+
 const initialState: TreinoFormState = { status: 'idle' }
 
-export function NovoTreinoForm() {
+export function NovoTreinoForm({ treinosParaCopia }: { treinosParaCopia: TreinoParaCopia[] }) {
   const [state, formAction, pending] = useActionState(saveTreino, initialState)
 
   const [data, setData] = useState(hojeISO())
   const [nome, setNome] = useState('')
   const [linhas, setLinhas] = useState<LinhaExercicio[]>([novaLinha()])
+  // Só controla a seleção do <select> de cópia — não é o "nome do treino
+  // vigente", por isso fica sempre resetado pro placeholder depois de
+  // aplicar a cópia (senão pareceria que reescolher o mesmo item de novo
+  // não faz nada, já que o valor não teria mudado).
+  const [copiaSelecionada, setCopiaSelecionada] = useState('')
 
   // Após salvar com sucesso, limpa o formulário pro próximo registro — o
   // componente permanece montado (sem navegação), então sem isso os campos
@@ -51,6 +67,27 @@ export function NovoTreinoForm() {
     setLinhas((atual) => (atual.length > 1 ? atual.filter((l) => l.id !== id) : atual))
   }
 
+  /**
+   * Copia o nome e a lista de exercícios de um treino já feito — a rotina
+   * dela repete os mesmos exercícios por semanas a fio, só variando
+   * série/carga aos poucos, então copiar e ajustar é bem mais rápido que
+   * digitar tudo de novo. Não mexe na data (continua sendo hoje por
+   * padrão) nem impede editar qualquer campo depois de copiar.
+   */
+  function copiarTreino(id: string) {
+    setCopiaSelecionada(id) // feedback visual momentâneo do que foi escolhido
+    const treino = treinosParaCopia.find((t) => t.id === id)
+    if (!treino) return
+
+    setNome(treino.nome)
+    setLinhas(
+      treino.exercicios.length > 0
+        ? treino.exercicios.map((e) => ({ ...novaLinha(), nome: e.nome, seriesReps: e.seriesReps, carga: e.carga }))
+        : [novaLinha()]
+    )
+    setCopiaSelecionada('') // volta pro placeholder, já aplicou
+  }
+
   const exerciciosJson = JSON.stringify(linhas.map(({ nome, seriesReps, carga }) => ({ nome, seriesReps, carga })))
 
   return (
@@ -61,6 +98,20 @@ export function NovoTreinoForm() {
         <p className={styles.error} role="alert">
           {state.message}
         </p>
+      )}
+
+      {treinosParaCopia.length > 0 && (
+        <div className={styles.fieldGrow}>
+          <label htmlFor="treino_copiar">Copiar de um treino já feito</label>
+          <select id="treino_copiar" value={copiaSelecionada} onChange={(e) => copiarTreino(e.target.value)}>
+            <option value="">Selecionar treino…</option>
+            {treinosParaCopia.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nome} — {formatDataBR(t.data)}
+              </option>
+            ))}
+          </select>
+        </div>
       )}
 
       <div className={styles.formRow}>

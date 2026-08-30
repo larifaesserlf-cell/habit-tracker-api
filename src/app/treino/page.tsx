@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { BackNav } from '@/components/BackNav'
-import { NovoTreinoForm } from './NovoTreinoForm'
+import { NovoTreinoForm, type TreinoParaCopia } from './NovoTreinoForm'
 import { TreinosList } from './TreinosList'
 import type { ExercicioTreino, Treino } from '@/lib/supabase/types'
 import styles from './page.module.css'
@@ -43,6 +43,20 @@ export default async function TreinoPage() {
     exerciciosPorTreino.set(exercicio.treino_id, lista)
   }
 
+  // `treinos` já vem ordenado do mais recente pro mais antigo — mantém essa
+  // ordem no seletor de cópia, já que é o treino mais recente (mesmo nome
+  // ou não) que ela normalmente quer repetir.
+  const treinosParaCopia: TreinoParaCopia[] = treinos.map((t) => ({
+    id: t.id,
+    nome: t.nome,
+    data: t.data,
+    exercicios: (exerciciosPorTreino.get(t.id) ?? []).map((e) => ({
+      nome: e.nome,
+      seriesReps: e.series_reps ?? '',
+      carga: e.carga ?? '',
+    })),
+  }))
+
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -52,7 +66,7 @@ export default async function TreinoPage() {
 
       <section className={styles.card}>
         <h2 className={styles.cardTitle}>Registrar treino</h2>
-        <NovoTreinoForm />
+        <NovoTreinoForm treinosParaCopia={treinosParaCopia} />
       </section>
 
       <section className={styles.section}>
