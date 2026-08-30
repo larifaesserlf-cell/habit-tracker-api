@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 12, 41, 0.75);
+  background: rgba(21, 21, 21, 0.75); /* --color-bg (#151515) em rgb, translúcido */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -14,8 +14,8 @@
   max-width: 32rem;
   max-height: 90vh;
   overflow-y: auto;
-  background: #24243e;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-surface);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 1rem;
   padding: 1.5rem;
 }
@@ -31,14 +31,14 @@
 .title {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .closeBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
@@ -46,5 +46,5 @@
 }
 
 .closeBtn:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }

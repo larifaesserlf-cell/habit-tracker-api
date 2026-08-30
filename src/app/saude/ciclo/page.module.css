@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: var(--color-bg);
   padding: 2rem 1.5rem 4rem;
 }
 
@@ -15,16 +15,16 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .card {
   max-width: 720px;
   margin: 0 auto 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(237, 237, 237, 0.12);
   border-radius: 1.25rem;
   padding: 1.5rem;
 }
@@ -40,7 +40,7 @@
 .cardTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0 0 1rem;
 }
 
@@ -52,14 +52,14 @@
 .sectionTitle {
   font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 0.75rem;
 }
 
 .empty {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -73,7 +73,7 @@
 }
 
 .bannerTexto {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
@@ -92,10 +92,10 @@
 
 .actionBtn {
   padding: 0.55rem 1.1rem;
-  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
   border: none;
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-bg);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
@@ -108,18 +108,18 @@
 
 .secondaryBtn {
   padding: 0.5rem 0.9rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 0.5rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(237, 237, 237, 0.75);
   font-weight: 600;
   font-size: 0.82rem;
   cursor: pointer;
 }
 
 .secondaryBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: rgba(237, 237, 237, 0.1);
+  color: var(--color-text-primary);
 }
 
 /* ── Listas ── */
@@ -133,8 +133,8 @@
 }
 
 .item {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
   border-radius: 0.75rem;
   padding: 0.85rem 1rem;
 }
@@ -148,12 +148,12 @@
 }
 
 .itemNome {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
 .itemMeta {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   margin-top: 0.15rem;
 }
@@ -185,7 +185,7 @@
 }
 
 .editLink {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
   text-decoration: none;
   background: none;
@@ -195,13 +195,13 @@
 }
 
 .editLink:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 .deleteBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(237, 237, 237, 0.35);
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -225,10 +225,10 @@
 
 .tag {
   padding: 0.15rem 0.55rem;
-  background: rgba(124, 106, 247, 0.15);
-  border: 1px solid rgba(124, 106, 247, 0.35);
+  background: rgba(124, 152, 133, 0.15);
+  border: 1px solid rgba(124, 152, 133, 0.35);
   border-radius: 999px;
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
   font-size: 0.72rem;
 }
 
@@ -265,7 +265,7 @@
 .form label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -275,10 +275,10 @@
 .form textarea {
   width: 100%;
   padding: 0.6rem 0.75rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   font-family: inherit;
   outline: none;
@@ -288,13 +288,13 @@
 .form input:focus,
 .form select:focus,
 .form textarea:focus {
-  border-color: #7c6af7;
-  box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(124, 152, 133, 0.2);
 }
 
 .form select option {
-  background: #24243e;
-  color: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .textareaDestaque {
@@ -320,10 +320,10 @@
 
 .submitBtn {
   padding: 0.65rem 1.25rem;
-  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
   border: none;
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-bg);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -335,13 +335,13 @@
 }
 
 .cancelLink {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .cancelLink:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 /* ── Navegação de mês (mesmo padrão do Financeiro) ── */
@@ -360,7 +360,7 @@
 }
 
 .mesNavArrow {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   text-decoration: none;
   font-size: 1.1rem;
   padding: 0.15rem 0.6rem;
@@ -368,31 +368,31 @@
 }
 
 .mesNavArrow:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  background: rgba(237, 237, 237, 0.08);
 }
 
 .voltarMesAtual {
   display: inline-block;
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.8rem;
   text-decoration: none;
   margin-top: 1rem;
 }
 
 .voltarMesAtual:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 /* ── Observações do mês ── */
 .obsDataHora {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.72rem;
   margin-bottom: 0.35rem;
 }
 
 .obsNotas {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(237, 237, 237, 0.85);
   font-size: 0.9rem;
   margin: 0.4rem 0 0;
   white-space: pre-wrap;
@@ -408,18 +408,18 @@
 }
 
 .calendarNavBtn {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
   text-decoration: none;
   padding: 0.35rem 0.6rem;
 }
 
 .calendarNavBtn:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 .calendarMesLabel {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-weight: 600;
   font-size: 0.95rem;
 }
@@ -431,7 +431,7 @@
 }
 
 .calendarDiaSemana {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.7rem;
   font-weight: 600;
   text-align: center;
@@ -450,14 +450,14 @@
   justify-content: center;
   position: relative;
   border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.7);
+  background: rgba(237, 237, 237, 0.04);
+  color: rgba(237, 237, 237, 0.7);
   font-size: 0.8rem;
 }
 
 .calendarDiaMenstruacao {
   background: rgba(248, 113, 113, 0.35);
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
@@ -472,7 +472,7 @@
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   font-size: 0.78rem;
 }
 
@@ -501,13 +501,13 @@
   font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  background: rgba(237, 237, 237, 0.04);
+  color: rgba(237, 237, 237, 0.7);
 }
 
 .periodoOptionAtiva {
-  border-color: rgba(124, 106, 247, 0.5);
-  background: rgba(124, 106, 247, 0.2);
-  color: #ffffff;
+  border-color: rgba(124, 152, 133, 0.5);
+  background: rgba(124, 152, 133, 0.2);
+  color: var(--color-text-primary);
 }

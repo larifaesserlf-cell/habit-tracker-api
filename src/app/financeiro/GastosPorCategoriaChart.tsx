@@ -5,21 +5,24 @@ import { formatMoeda } from './constants'
 import styles from './page.module.css'
 
 /**
- * Mesma paleta usada nos swatches de cor de Áreas — reaproveitada aqui pra
- * manter consistência visual, ciclando pelas 10 cores conforme o número de
- * categorias (que não é fixo, vem dinamicamente dos dados).
+ * Paleta categórica só deste gráfico (não é mais a mesma de Áreas — aquela
+ * continua vívida de propósito, é escolha livre da usuária pras próprias
+ * áreas; aqui, com a paleta grafite monocromática, tons desaturados
+ * ancorados no accent verde-acinzentado, só o suficiente pra distinguir
+ * categoria por categoria). Cicla pelas 10 cores conforme o número de
+ * categorias, que não é fixo — vem dinamicamente dos dados.
  */
 const CORES = [
-  '#7c6af7',
-  '#f87171',
-  '#fb923c',
-  '#fbbf24',
-  '#4ade80',
-  '#2dd4bf',
-  '#38bdf8',
-  '#f472b6',
-  '#a78bfa',
+  '#7c9885', // accent
+  '#a8a29e',
+  '#8f9779',
+  '#9a8c98',
+  '#7d8f9c',
+  '#b0a693',
+  '#8a9a8f',
+  '#a3908a',
   '#94a3b8',
+  '#6b7d76',
 ]
 
 type Fatia = { categoria: string; valor: number }
@@ -56,12 +59,12 @@ export function GastosPorCategoriaChart({
             <Tooltip
               formatter={(value) => formatMoeda(Number(value))}
               contentStyle={{
-                background: '#24243e',
-                border: '1px solid rgba(255, 255, 255, 0.15)',
+                background: 'var(--color-surface)',
+                border: '1px solid rgba(237, 237, 237, 0.15)',
                 borderRadius: '0.5rem',
               }}
-              labelStyle={{ color: '#ffffff' }}
-              itemStyle={{ color: '#ffffff' }}
+              labelStyle={{ color: 'var(--color-text-primary)' }}
+              itemStyle={{ color: 'var(--color-text-primary)' }}
             />
           </PieChart>
         </ResponsiveContainer>

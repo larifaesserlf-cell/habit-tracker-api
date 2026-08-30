@@ -7,7 +7,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: var(--color-bg);
   padding: 1.5rem;
 }
 
@@ -41,10 +41,10 @@
 .heading {
   font-size: clamp(2.5rem, 6vw, 4rem);
   font-weight: 800;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #ffffff 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-text-primary) 0%, var(--color-accent-hover) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -52,7 +52,7 @@
 
 .tagline {
   font-size: clamp(1rem, 2.5vw, 1.2rem);
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   max-width: 400px;
   line-height: 1.6;
   margin: 0;
@@ -68,19 +68,19 @@
 .cta {
   display: inline-block;
   padding: 0.9rem 2rem;
-  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
+  color: var(--color-bg);
   text-decoration: none;
   border-radius: 999px;
   font-size: 1.05rem;
   font-weight: 700;
-  box-shadow: 0 6px 28px rgba(124, 106, 247, 0.45);
+  box-shadow: 0 6px 28px rgba(124, 152, 133, 0.45);
   transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
 }
 
 .cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 32px rgba(124, 106, 247, 0.6);
+  box-shadow: 0 10px 32px rgba(124, 152, 133, 0.6);
 }
 
 .cta:active {
@@ -89,11 +89,11 @@
 
 .ctaSecondary {
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   text-decoration: none;
   transition: color 0.2s;
 }
 
 .ctaSecondary:hover {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
 }

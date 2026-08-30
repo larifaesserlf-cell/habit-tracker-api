@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: var(--color-bg);
   padding: 2rem 1.5rem 4rem;
 }
 
@@ -15,16 +15,16 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .card {
   max-width: 640px;
   margin: 0 auto 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(237, 237, 237, 0.12);
   border-radius: 1.25rem;
   padding: 1.5rem;
 }
@@ -32,24 +32,24 @@
 .cardTitle {
   font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 1rem;
 }
 
 .empty {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   margin: 0;
 }
 
 .link {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
 }
 
 .link:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 /* ── Concluídos por tipo ── */
@@ -61,8 +61,8 @@
 }
 
 .statTile {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
   border-radius: 0.75rem;
   padding: 1rem;
   text-align: center;
@@ -71,17 +71,17 @@
 .statTileValue {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .statTileLabel {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   margin-top: 0.25rem;
 }
 
 .statTotal {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   margin: 0;
 }
@@ -97,7 +97,7 @@
 .notaMediaBase {
   font-size: 0.85rem;
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
 }
 
 /* ── Gêneros mais frequentes ── */
@@ -114,16 +114,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
   border-radius: 0.5rem;
   padding: 0.55rem 0.85rem;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.9rem;
 }
 
 .rankCount {
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   font-weight: 600;
 }

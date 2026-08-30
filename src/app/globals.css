@@ -1,4 +1,23 @@
 /* ===================================================
+   Design tokens — paleta Grafite Monocromático.
+   Fonte única de verdade pra cor no app inteiro: qualquer troca de
+   paleta futura entra aqui, não em cada .module.css.
+   =================================================== */
+:root {
+  --color-bg: #151515; /* fundo geral da aplicação */
+  --color-surface: #1f1f1f; /* cards, painéis, elementos elevados */
+  --color-text-primary: #ededed; /* títulos, texto de leitura primária */
+  --color-text-secondary: #9a9a9a; /* labels/legendas — ajustado de #8A8A8A pra manter contraste AA sobre --color-surface */
+  --color-accent: #7c9885; /* verde-acinzentado — só em ação primária/status positivo, nunca decorativo */
+  --color-accent-hover: #9db2a4; /* --color-accent clareado ~25%, pra hover/estado ativo */
+  --color-accent-soft: rgba(124, 152, 133, 0.14); /* fundo sutil de pill/badge com --color-accent */
+  --color-accent-border: rgba(124, 152, 133, 0.4); /* borda de pill/badge com --color-accent */
+
+  /* Cores semânticas existentes (receita/despesa, feito/não-feito, avisos)
+     ficam como estão nos próprios .module.css — não fazem parte da troca. */
+}
+
+/* ===================================================
    Global reset & base styles
    =================================================== */
 
@@ -17,8 +36,8 @@ html {
 }
 
 body {
-  background: #0f0c29;
-  color: #ffffff;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   line-height: 1.5;
 }
 

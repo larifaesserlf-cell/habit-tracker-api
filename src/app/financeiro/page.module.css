@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: var(--color-bg);
   padding: 2rem 1.5rem 4rem;
 }
 
@@ -15,27 +15,27 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
   flex: 1;
 }
 
 .statsLink {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .statsLink:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 .card {
   max-width: 760px;
   margin: 0 auto 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(237, 237, 237, 0.12);
   border-radius: 1.25rem;
   padding: 1.5rem;
 }
@@ -43,7 +43,7 @@
 .cardTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0 0 1rem;
 }
 
@@ -62,18 +62,18 @@
 
 .addBtn {
   padding: 0.55rem 1rem;
-  background: rgba(124, 106, 247, 0.15);
-  border: 1px solid rgba(124, 106, 247, 0.4);
+  background: rgba(124, 152, 133, 0.15);
+  border: 1px solid rgba(124, 152, 133, 0.4);
   border-radius: 0.5rem;
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .addBtn:hover {
-  background: rgba(124, 106, 247, 0.25);
-  color: #ffffff;
+  background: rgba(124, 152, 133, 0.25);
+  color: var(--color-text-primary);
 }
 
 /* ── Abas do gráfico por categoria ── */
@@ -90,28 +90,28 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  background: rgba(237, 237, 237, 0.04);
+  color: var(--color-text-secondary);
 }
 
 .chartTabAtiva {
-  border-color: rgba(124, 106, 247, 0.5);
-  background: rgba(124, 106, 247, 0.2);
-  color: #ffffff;
+  border-color: rgba(124, 152, 133, 0.5);
+  background: rgba(124, 152, 133, 0.2);
+  color: var(--color-text-primary);
 }
 
 .sectionTitle {
   font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 0.75rem;
 }
 
 .empty {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -131,7 +131,7 @@
 }
 
 .mesNavArrow {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   text-decoration: none;
   font-size: 1.1rem;
   padding: 0.15rem 0.6rem;
@@ -139,20 +139,20 @@
 }
 
 .mesNavArrow:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-primary);
+  background: rgba(237, 237, 237, 0.08);
 }
 
 .voltarMesAtual {
   display: inline-block;
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.8rem;
   text-decoration: none;
   margin-top: 1rem;
 }
 
 .voltarMesAtual:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 /* ── Resumo do mês ── */
@@ -167,8 +167,8 @@
 }
 
 .statTile {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
   border-radius: 0.75rem;
   padding: 1rem;
 }
@@ -176,12 +176,12 @@
 .statTileValue {
   font-size: 1.3rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .statTileLabel {
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   margin-top: 0.25rem;
 }
 
@@ -190,7 +190,7 @@
 }
 
 .totalAportado {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   margin: 1rem 0 0;
 }
@@ -232,18 +232,18 @@
 }
 
 .chartLegendNome {
-  color: #ffffff;
+  color: var(--color-text-primary);
   flex: 1;
 }
 
 .chartLegendValor {
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(237, 237, 237, 0.7);
   font-weight: 600;
   white-space: nowrap;
 }
 
 .chartLegendPct {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-weight: 400;
 }
 
@@ -258,21 +258,21 @@
 
 .filtros select {
   padding: 0.45rem 0.65rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.82rem;
   outline: none;
 }
 
 .filtros select option {
-  background: #24243e;
-  color: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .limparFiltros {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   text-decoration: none;
 }
@@ -289,7 +289,7 @@
 .mesGrupoTitle {
   font-size: 0.85rem;
   font-weight: 700;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 0.6rem;
@@ -315,8 +315,8 @@
 }
 
 .item {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
   border-radius: 0.75rem;
   padding: 0.9rem 1.1rem;
 }
@@ -365,9 +365,9 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--color-text-secondary);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
 }
@@ -376,25 +376,25 @@
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: #c4b5fd;
-  background: rgba(124, 106, 247, 0.15);
-  border: 1px solid rgba(124, 106, 247, 0.4);
+  color: var(--color-accent-hover);
+  background: rgba(124, 152, 133, 0.15);
+  border: 1px solid rgba(124, 152, 133, 0.4);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
 }
 
 /* ── Cartão de crédito: Gastos do mês / Faturas ── */
 .faturaAjuda {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   margin: -0.5rem 0 1rem;
 }
 
 .faturaPreview {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
-  background: rgba(124, 106, 247, 0.1);
-  border: 1px solid rgba(124, 106, 247, 0.3);
+  background: rgba(124, 152, 133, 0.1);
+  border: 1px solid rgba(124, 152, 133, 0.3);
   border-radius: 0.5rem;
   padding: 0.6rem 0.85rem;
   margin: 0;
@@ -414,24 +414,24 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   font-size: 0.82rem;
 }
 
 .faturaToggleBtn {
   padding: 0.5rem 0.9rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 0.5rem;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(237, 237, 237, 0.75);
   font-weight: 600;
   font-size: 0.82rem;
   cursor: pointer;
 }
 
 .faturaToggleBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: rgba(237, 237, 237, 0.1);
+  color: var(--color-text-primary);
 }
 
 .faturaToggleBtn:disabled {
@@ -459,9 +459,9 @@
 }
 
 .statusBadgePendente {
-  color: rgba(255, 255, 255, 0.55);
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.15);
+  color: var(--color-text-secondary);
+  background: rgba(237, 237, 237, 0.06);
+  border-color: rgba(237, 237, 237, 0.15);
 }
 
 .statusBadgePago:hover,
@@ -473,18 +473,18 @@
   align-self: flex-start;
   background: none;
   border: none;
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.82rem;
   cursor: pointer;
   padding: 0;
 }
 
 .toggleMoreBtn:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 .parcelasAjuda {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   line-height: 1.4;
   margin: 0;
@@ -495,19 +495,19 @@
 
 .itemNome,
 .itemTitulo {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 1rem;
   font-weight: 600;
 }
 
 .itemMeta {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   margin-top: 0.15rem;
 }
 
 .itemComentario {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgba(237, 237, 237, 0.65);
   font-size: 0.85rem;
   line-height: 1.4;
   margin: 0.45rem 0 0;
@@ -522,13 +522,13 @@
 }
 
 .editLink {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .editLink:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 /* .editLink também é usado em <button> (edição rápida em modal) — reseta
@@ -545,7 +545,7 @@ button.editLink {
 .deleteBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(237, 237, 237, 0.35);
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -592,7 +592,7 @@ button.editLink {
 .form label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -602,7 +602,7 @@ button.editLink {
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(237, 237, 237, 0.7);
   padding-bottom: 0.55rem;
   white-space: nowrap;
 }
@@ -615,10 +615,10 @@ button.editLink {
 .form select {
   width: 100%;
   padding: 0.6rem 0.75rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   outline: none;
   box-sizing: border-box;
@@ -626,13 +626,13 @@ button.editLink {
 
 .form input:focus,
 .form select:focus {
-  border-color: #7c6af7;
-  box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(124, 152, 133, 0.2);
 }
 
 .form select option {
-  background: #24243e;
-  color: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .error {
@@ -653,10 +653,10 @@ button.editLink {
 
 .submitBtn {
   padding: 0.65rem 1.25rem;
-  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
   border: none;
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-bg);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -668,11 +668,11 @@ button.editLink {
 }
 
 .cancelLink {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .cancelLink:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }

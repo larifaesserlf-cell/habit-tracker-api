@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: var(--color-bg);
   padding: 2rem 1.5rem 4rem;
 }
 
@@ -15,16 +15,16 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
 .card {
   max-width: 720px;
   margin: 0 auto 2rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(237, 237, 237, 0.12);
   border-radius: 1.25rem;
   padding: 1.5rem;
 }
@@ -32,7 +32,7 @@
 .cardTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0 0 1rem;
 }
 
@@ -44,14 +44,14 @@
 .sectionTitle {
   font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 0.75rem;
 }
 
 .empty {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
 }
 
@@ -65,8 +65,8 @@
 }
 
 .item {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
   border-radius: 0.75rem;
   padding: 0.85rem 1rem;
 }
@@ -80,12 +80,12 @@
 }
 
 .itemNome {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
 .itemMeta {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   margin-top: 0.15rem;
 }
@@ -110,20 +110,20 @@
 .progressBar {
   flex: 1;
   height: 0.4rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.08);
   border-radius: 999px;
   overflow: hidden;
 }
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
   border-radius: 999px;
 }
 
 .progressLabel {
   flex-shrink: 0;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
   font-weight: 600;
 }
@@ -137,13 +137,13 @@
 }
 
 .editLink {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .editLink:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 /* ── Badges de status ── */
@@ -160,9 +160,9 @@
 }
 
 .badgeAtiva {
-  background: rgba(124, 106, 247, 0.15);
-  border: 1px solid rgba(124, 106, 247, 0.4);
-  color: #c4b5fd;
+  background: rgba(124, 152, 133, 0.15);
+  border: 1px solid rgba(124, 152, 133, 0.4);
+  color: var(--color-accent-hover);
 }
 
 .badgeConcluida {
@@ -172,28 +172,28 @@
 }
 
 .badgeAbandonada {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.45);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  color: var(--color-text-secondary);
 }
 
 /* ── Ações rápidas ── */
 .quickBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .quickBtn:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .deleteBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(237, 237, 237, 0.35);
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -240,7 +240,7 @@
 .form label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -249,10 +249,10 @@
 .form select {
   width: 100%;
   padding: 0.6rem 0.75rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   outline: none;
   box-sizing: border-box;
@@ -260,13 +260,13 @@
 
 .form input:focus,
 .form select:focus {
-  border-color: #7c6af7;
-  box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(124, 152, 133, 0.2);
 }
 
 .form select option {
-  background: #24243e;
-  color: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .error {
@@ -287,10 +287,10 @@
 
 .submitBtn {
   padding: 0.65rem 1.25rem;
-  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
   border: none;
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-bg);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -302,11 +302,11 @@
 }
 
 .cancelLink {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .cancelLink:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }

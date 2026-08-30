@@ -1,6 +1,6 @@
 .page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: var(--color-bg);
   padding: 2rem 1.5rem 4rem;
 }
 
@@ -15,28 +15,28 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
   flex: 1;
 }
 
 .subLink {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.8rem;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .subLink:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 .card {
   max-width: 780px;
   margin: 0 auto 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(237, 237, 237, 0.12);
   border-radius: 1.25rem;
   padding: 1.5rem;
 }
@@ -52,7 +52,7 @@
 .cardTitle {
   font-size: 1rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -64,14 +64,14 @@
 .sectionTitle {
   font-size: 0.9rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 0.75rem;
 }
 
 .empty {
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   margin: 0;
 }
@@ -93,18 +93,18 @@
 .summaryLabel {
   font-size: 0.68rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 
 .summaryValue {
   font-size: 0.9rem;
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .notas {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   line-height: 1.5;
   white-space: pre-wrap;
@@ -122,8 +122,8 @@
 }
 
 .item {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(237, 237, 237, 0.04);
+  border: 1px solid rgba(237, 237, 237, 0.08);
   border-radius: 0.75rem;
   padding: 0.9rem 1.1rem;
 }
@@ -145,19 +145,19 @@
 }
 
 .itemNome {
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.98rem;
   font-weight: 600;
 }
 
 .itemMeta {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.8rem;
   margin-top: 0.15rem;
 }
 
 .itemComentario {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   line-height: 1.4;
   margin: 0.5rem 0 0;
@@ -172,25 +172,25 @@
 }
 
 .editLink {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .editLink:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
 
 .quickBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .quickBtn:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .reorderGroup {
@@ -205,14 +205,14 @@
 .reorderBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   cursor: pointer;
   padding: 0 0.2rem;
 }
 
 .reorderBtn:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }
 
 .reorderBtn:disabled {
@@ -223,7 +223,7 @@
 .deleteBtn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(237, 237, 237, 0.35);
   font-size: 0.85rem;
   cursor: pointer;
 }
@@ -265,9 +265,9 @@
 }
 
 .statusQueroFazer {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.5);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  color: var(--color-text-secondary);
 }
 
 .statusPlanejando {
@@ -277,9 +277,9 @@
 }
 
 .statusConfirmada {
-  background: rgba(124, 106, 247, 0.15);
-  border: 1px solid rgba(124, 106, 247, 0.4);
-  color: #c4b5fd;
+  background: rgba(124, 152, 133, 0.15);
+  border: 1px solid rgba(124, 152, 133, 0.4);
+  color: var(--color-accent-hover);
 }
 
 .statusConcluida {
@@ -301,15 +301,15 @@
 }
 
 .prioridadeOpcional {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.5);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  color: var(--color-text-secondary);
 }
 
 .pontoQueroIr {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.5);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  color: var(--color-text-secondary);
 }
 
 .pontoVisitado {
@@ -325,9 +325,9 @@
 }
 
 .naoReservadoBadge {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.4);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
+  color: var(--color-text-secondary);
 }
 
 .notaBadge {
@@ -370,7 +370,7 @@
 .form label {
   font-size: 0.75rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--color-text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -380,7 +380,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(237, 237, 237, 0.7);
   padding-bottom: 0.55rem;
   white-space: nowrap;
 }
@@ -394,10 +394,10 @@
 .textarea {
   width: 100%;
   padding: 0.6rem 0.75rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(237, 237, 237, 0.06);
+  border: 1px solid rgba(237, 237, 237, 0.15);
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-text-primary);
   font-size: 0.9rem;
   outline: none;
   box-sizing: border-box;
@@ -412,13 +412,13 @@
 .form input:focus,
 .form select:focus,
 .textarea:focus {
-  border-color: #7c6af7;
-  box-shadow: 0 0 0 3px rgba(124, 106, 247, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(124, 152, 133, 0.2);
 }
 
 .form select option {
-  background: #24243e;
-  color: #ffffff;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
 }
 
 .error {
@@ -439,10 +439,10 @@
 
 .submitBtn {
   padding: 0.65rem 1.25rem;
-  background: linear-gradient(135deg, #7c6af7 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%);
   border: none;
   border-radius: 0.5rem;
-  color: #ffffff;
+  color: var(--color-bg);
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
@@ -454,11 +454,11 @@
 }
 
 .cancelLink {
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--color-text-secondary);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .cancelLink:hover {
-  color: #ffffff;
+  color: var(--color-text-primary);
 }

@@ -3,21 +3,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: var(--color-bg);
   padding: 1.5rem;
 }
 
 .card {
   width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--color-surface);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(237, 237, 237, 0.12);
   border-radius: 1.5rem;
   padding: 2.5rem 2rem;
   box-shadow:
     0 25px 50px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+    0 0 0 1px rgba(237, 237, 237, 0.04) inset;
   text-align: center;
 }
 
@@ -33,24 +33,24 @@
 .title {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-text-primary);
   margin: 0;
   letter-spacing: -0.02em;
 }
 
 .message {
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   line-height: 1.5;
   margin: 0 0 1.5rem;
 }
 
 .backLink {
-  color: #a78bfa;
+  color: var(--color-accent-hover);
   font-size: 0.85rem;
   text-decoration: none;
 }
 
 .backLink:hover {
-  color: #c4b5fd;
+  color: var(--color-accent-hover);
 }
