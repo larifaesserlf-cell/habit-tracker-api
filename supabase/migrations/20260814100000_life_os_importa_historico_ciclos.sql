@@ -48,5 +48,5 @@ cross join (
     ('2026-07-27', '2026-08-04'),
     ('2026-08-27', '2026-08-30')
 ) as v (data_inicio, data_fim)
-where u.email = 'lari.faesser.lf@gmail.com'
+where u.email = 'faesserlarissa@gmail.com'
 on conflict (user_id, data_inicio) do nothing;
